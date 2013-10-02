@@ -1,0 +1,51 @@
+;; -*- mode: scheme; -*-
+;; Egglab Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (nightjar-intro c)
+  (console.log "building intro")
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt courier")
+     (wrap-text ctx "EGGLAB" 50 100 1000 100))
+   (game-modify-buttons
+    (list
+     (image-button
+      "Start playing"
+      700 200
+      #t
+      "button.png"
+      (lambda (c)
+        (nightjar-game c)))
+     ) c)))
+
+(define (nightjar-game c)
+  (console.log "building game")
+  (game-modify-render
+   (lambda (ctx)
+     (let ((t (modulo (* (game-time c) -0.2) 1000)))
+       (ctx.drawImage (find-image "bg-synth/0.jpg") t -500))
+     (set! ctx.font "normal 30pt courier"))
+   (game-modify-buttons () c)))
+
+(set! ctx.font "normal 50pt courier")
+
+(load-images!
+ (list "bg-synth/0.jpg"
+       "bg-synth/1.png"
+       "bg-synth/2.png"
+       "button.png")
+ (lambda ()
+   (start-game canvas ctx)))

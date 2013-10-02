@@ -15,4 +15,5 @@ html, body {
 #canvas {
     width: auto;
     height: 100%;
+    border: 1px dashed #fff;
 }
