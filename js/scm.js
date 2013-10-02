@@ -193,7 +193,7 @@ zc.comp_lambda = function(args) {
         lastc=zc.comp_cond_return(zc.cdr(last));
     } else {
         if (zc.car(last)=="if") {
-            lastc=zc.comp_if_return(zc.cdr(last));
+            lastc="return "+zc.comp_if(zc.cdr(last));
         } else {
             if (zc.car(last)=="when") {
                 lastc=zc.comp_when_return(zc.cdr(last));
@@ -204,6 +204,7 @@ zc.comp_lambda = function(args) {
     }
 
     return "function ("+zc.car(args).join()+")\n"+
+        // adding semicolon here
         "{"+zc.list_map(zc.comp,eexpr).join(";\n")+
         "\n"+lastc+"\n}\n";
 };
@@ -236,16 +237,11 @@ zc.comp_cond_return = function(args) {
     }
 };
 
+// half fixed to remove return versions and use more closures!
 zc.comp_if = function(args) {
-    return "if ("+zc.comp(zc.car(args))+") {\n"+
-        zc.comp(zc.cadr(args))+"} else {"+
-        zc.comp(zc.caddr(args))+"}";
-};
-
-zc.comp_if_return = function(args) {
-    return "if ("+zc.comp(zc.car(args))+") {\n"+
+    return "(function () { if ("+zc.comp(zc.car(args))+") {\n"+
         "return "+zc.comp(zc.cadr(args))+"} else {"+
-        "return "+zc.comp(zc.caddr(args))+"}";
+        "return "+zc.comp(zc.caddr(args))+"}})()";
 };
 
 zc.comp_when = function(args) {
@@ -267,6 +263,7 @@ zc.core_forms = function(fn, args) {
     if (fn == "let") if (zc.check(fn,args,2,-1)) return zc.comp_let(args);
 
     if (fn == "define") {
+        // adding semicolon here
         if (zc.check(fn,args,2,-1)) return "var "+zc.car(args)+" = "+zc.comp(zc.cdr(args))+";";
     }
 
@@ -413,6 +410,10 @@ zc.core_forms = function(fn, args) {
         }
     }
 
+    if (fn == "new") {
+        return "new "+zc.car(args)+"( "+zc.comp(zc.cadr(args))+")";
+    }
+
     return false;
 };
 
@@ -465,6 +466,7 @@ zc.comp = function(f) {
             return zc.list_map(zc.comp,f).join("\n");
         }
     } catch (e) {
+        zc.to_page("output", "An error in parsing occured on "+f.toString());
         zc.to_page("output", e);
         zc.to_page("output", e.stack);
         return "";
@@ -513,21 +515,28 @@ function init() {
     jQuery(document).ready(function($) {
 
         // load and compile the syntax parser
-        var syntax_parse=zc.load_unparsed("scm/syntax.scm");
+        var syntax_parse=zc.load_unparsed("scm/syntax.jscm");
         try {
             //        console.log(syntax_parse);
             do_syntax=eval(syntax_parse);
         } catch (e) {
+            zc.to_page("output", "An error occured parsing syntax of "+syntax_parse);
             zc.to_page("output",e);
+            zc.to_page("output",e.stack);
         }
-        var js=zc.load("scm/base.scm");
-        js+=zc.load("scm/egglab.scm");
-        zc.to_page("compiled",js);
+
+        var js=zc.load("scm/base.jscm");
+        js+=zc.load("scm/lce.jscm");
+//        js+=zc.load("scm/egglab.jscm");
+        js+=zc.load("scm/landscaper.jscm");
+          zc.to_page("compiled",js);
 
         try {
             eval(js);
         } catch (e) {
+            zc.to_page("output", "An error occured while evaluating ");
             zc.to_page("output",e);
+            zc.to_page("output",e.stack);
         }
     });
 }

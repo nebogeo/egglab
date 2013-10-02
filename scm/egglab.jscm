@@ -1,8 +1,16 @@
 (define images
-  (list "white" "black" "red" "green" "blue"
-        "stripe-1" "stripe-2" "stripe-3" "stripe-4" "stripe-5" "stripe-6" "stripe-7" "stripe-8" "stripe-9"
-        "dots-1" "dots-2" "dots-3" "dots-4" "dots-5" "dots-6"
-        "gradient-top" "gradient-left" "gradient-top" "gradient-bottom" "gradient-spot"))
+  (build-list
+   24
+   (lambda (i)
+     (+ "themes/natural/" (+ i 1) ".png"))))
+
+
+;  (build-list (lambda (i) (+ "" i) 11)))
+
+  ;(list "white" "black" "red" "green" "blue"
+  ;      "stripe-1" "stripe-2" "stripe-3" "stripe-4" "stripe-5" "stripe-6" "stripe-7" "stripe-8" "stripe-9"
+  ;      "dots-1" "dots-2" "dots-3" "dots-4" "dots-5" "dots-6"
+  ;      "gradient-top" "gradient-left" "gradient-top" "gradient-bottom" "gradient-spot"))
 
 (define (choose l)
   (list-ref l (random (length l))))
@@ -14,6 +22,13 @@
 (define (transform-rotate t) (list-ref t 2))
 (define (transform-scale t) (list-ref t 3))
 
+(define (transform-mutate t r)
+  (transform
+   (modulo (+ (transform-x t) (* (rndf) 10 r)) 127)
+   (modulo (+ (transform-y t) (* (rndf) 10 r)) 127)
+   (choose (list 0 (/ 6.282 4)))
+   1))
+
 (define (make-terminal)
   (list
    "terminal"
@@ -24,24 +39,63 @@
 (define (terminal-transform t) (list-ref t 1))
 (define (terminal-image t) (list-ref t 2))
 
-(define (make-operator a b)
+(define (terminal-mutate t r)
   (list
-   "op"
-   (choose
-    (list "copy" "destination-atop" "destination-in"
-          "destination-out" "destination-over" "source-atop" "source-in"
-          "source-out" "source-over" "lighter" "xor"))
-   a b))
+   "terminal"
+   (transform-mutate (terminal-transform t) r)
+   (if (> r (rndf))
+       (choose images)
+       (terminal-image t))))
+
+(define blend-modes
+  ;; "safe" modes (browser consisitent)
+  (list "source-over"
+        "source-atop"
+        "destination-over"
+        "destination-out"
+        "lighter"
+        "xor"))
+
+(define (make-operator a b)
+  (list "op" (choose blend-modes) a b))
 
 (define (operator-type t) (list-ref t 1))
 (define (operator-operand-a t) (list-ref t 2))
 (define (operator-operand-b t) (list-ref t 3))
+
+(define (operator-mutate t r)
+  (list
+   "op"
+   (if (> r (rndf)) (choose blend-modes) (operator-type t))
+   (egg-mutate (operator-operand-a t) r)
+   (egg-mutate (operator-operand-b t) r)))
 
 (define (make-random-egg depth)
   (if (or (zero? depth) (< (random 10) 2))
       (make-terminal)
       (make-operator (make-random-egg (- depth 1))
                      (make-random-egg (- depth 1)))))
+
+(define (egg-mutate egg r)
+  (if (eq? (program-type egg) "terminal")
+      (terminal-mutate egg r)
+      (operator-mutate egg r)))
+
+;; gp
+
+(define (make-individual fitness egg)
+  (list fitness egg))
+
+(define (individual-fitness i) (list-ref i 0))
+(define (individual-modify-fitness i v) (list-replace i 0 v))
+(define (individual-egg i) (list-ref i 1))
+
+(define (make-population size)
+  (build-list
+   size
+   (lambda (i)
+     (make-individual 0 (make-random-egg 6)))))
+
 
 
 (console.log "started egglab")
@@ -55,20 +109,20 @@
 
 (define image-lib ())
 
-(define (load-image! fn finished)
+(define (load-image! fn count finished)
   (let ((image (js "new Image()")))
     (set! image.onload
           (lambda ()
             (set! image-lib (cons (list fn image) image-lib))
-            (when (eq? (length image-lib)
-                       (length images))
+            (when (eq? (length image-lib) count)
                   (finished))))
-    (set! image.src (+ "images/" fn ".png"))))
+    (console.log "loading.." fn)
+    (set! image.src (+ "images/" fn))))
 
 (define (load-images! l finished)
   (for-each
    (lambda (fn)
-     (load-image! fn finished))
+     (load-image! fn (length l) finished))
    l))
 
 (define (find-image fn l)
@@ -104,17 +158,19 @@
         (ctx.translate (- 0 (transform-x (terminal-transform program)))
                        (- 0 (transform-y (terminal-transform program)))))
       (begin
-        (ctx.save)
-        (set! ctx.globalCompositeOperation (operator-type program))
-        (ctx.save)
-        (draw-egg ctx x y (operator-operand-a program))
-        (ctx.restore)
-        (ctx.save)
-        (draw-egg ctx x y (operator-operand-b program))
-        (ctx.restore)
-        (ctx.restore))))
+        (let ((tcanvas (document.createElement "canvas")))
+          (set! tcanvas.width 128)
+          (set! tcanvas.height 128)
+          (let ((tctx (tcanvas.getContext "2d")))
+            (set! tctx.globalCompositeOperation "source-over")
+            (draw-egg tctx x y (operator-operand-a program))
+            (set! tctx.globalCompositeOperation (operator-type program))
+            (draw-egg tctx x y (operator-operand-b program))
+            (ctx.drawImage tcanvas 0 0)
+            ))
+        )))
 
-(define (draw-eggs ctx w c)
+(define (draw-eggs ctx w c ancestor)
   (when (not (zero? c))
         ;(ctx.save)
         (let ((canvas (document.createElement "canvas")))
@@ -125,26 +181,32 @@
                 (y (* (Math.floor (/ (- c 1) w)) 127)))
 
             (console.log (+ "drawing egg" c))
-            (let ((egg (make-random-egg 12)))
-              ;;(console.log egg)
+            (tctx.save)
+            (let ((egg (egg-mutate ancestor 0.01)))
+              (console.log egg)
               (draw-egg tctx 0 0 egg))
+            (tctx.restore)
 
-            (ctx.putImageData
-             (tctx.getImageData 0 0 127 127) x y)
+            ;; mask the egg shape
+            (set! tctx.globalCompositeOperation "destination-atop")
+            (tctx.drawImage egg 0 0)
 
-            (ctx.drawImage egg x y)
+            (ctx.drawImage canvas x y)
+
             ))
-        (window.setTimeout (lambda () (draw-eggs ctx w (- c 1))) 500)))
-
+        (window.setTimeout (lambda () (draw-eggs ctx w (- c 1) ancestor)) 500)))
 
 (set! egg (js "new Image()"))
 
 (set! egg.onload
       (lambda ()
         (load-images!
-         images
+         (append images (list "themes/backgrounds/1.jpg"))
          (lambda ()
+           (ctx.drawImage (find-image "themes/backgrounds/1.jpg" image-lib) 0 0)
            (console.log "drawing egg")
-           (draw-eggs ctx 4 16)))))
+           (let ((ancestor (make-random-egg 6)))
+             (console.log ancestor)
+             (draw-eggs ctx 4 16 ancestor))))))
 
 (set! egg.src "images/egg.png")
