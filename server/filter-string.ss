@@ -1,5 +1,5 @@
 ;; Naked on Pluto Copyright (C) 2010 Aymeric Mansoux, Marloes de Valk, Dave Griffiths
-;;                                       
+;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU Affero General Public License as
 ;; published by the Free Software Foundation, either version 3 of the
@@ -19,7 +19,7 @@
 (require "list.ss")
 (provide (all-defined-out))
 
-(define white-list (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 .,'!?-#:@"))
+(define white-list (string->list "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 .,'!?-#:@()/"))
 
 ; start slow and stupid
 (define (filter-string s)
@@ -40,4 +40,3 @@
 
 (printf "unit testing filter-string.ss~n")
 (unit-test)
-  

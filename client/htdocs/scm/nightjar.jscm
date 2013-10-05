@@ -18,38 +18,57 @@
     cache: false
 })")
 
-(define (server-call name argsl)
+(define (msg a)
+  (console.log a))
+
+(define (dbg a)
+  (msg a) a)
+
   ;; hack together a js object to send
-   (define args
-    (foldl
-     (lambda (i r)
-       (js "r[i[0]]=i[1]")
-       r)
-     (js "{}")
-     argsl))
-  (set! args.function_name name)
-  (console.log args)
-  (let ((v ($.get "game" args)))
-    (v.fail (lambda (jqXHR textStatus errorThrown)
-              (console.log textStatus)
-              (console.log errorThrown)))))
+(define (build-url-args args)
+  (foldl
+   (lambda (i r) (js "r[i[0]]=i[1]") r)
+   (js "{}") args))
 
- (define (server-call-mutate name argsl f)
-   ;; hack together a js object to send
-   (define args
-    (foldl
-     (lambda (i r)
-       (js "r[i[0]]=i[1]")
-       r)
-     (js "{}")
-     argsl))
-  (set! args.function_name name)
-  (console.log args)
-  (let ((v ($.get "game" args (mutate-game f))))
-    (v.fail (lambda (jqXHR textStatus errorThrown)
-              (console.log textStatus)
-              (console.log errorThrown)))))
+(define (server-call name argsl)
+  (let ((args (build-url-args argsl)))
+    (set! args.fn name)
+    (let ((v ($.get "egglab" args)))
+      (v.fail (lambda (jqXHR textStatus errorThrown)
+                (console.log textStatus)
+                (console.log errorThrown))))))
 
+(define (server-call-mutate name argsl f)
+  (let ((args (build-url-args argsl)))
+    (set! args.fn name)
+    (let ((v ($.get "egglab" args (mutate-game f))))
+      (v.fail (lambda (jqXHR textStatus errorThrown)
+                (console.log textStatus)
+                (console.log errorThrown))))))
+
+(define (scheme-txt v)
+  (cond
+    ((number? v) v)
+    ((string? v) (string-append "'" v "'"))
+    ((boolean? v) (if v "#t" "#f"))
+    ((list? v)
+     (cond
+       ((null? v) "()")
+       (else
+        (list-txt v))))
+   (else (msg (+ "scheme->txt, unsupported type for " v)))))
+
+(define (list-txt l)
+  (define (_ l s)
+    (cond
+     ((null? l) s)
+     (else
+      (_ (cdr l)
+         (string-append
+          s
+          (if (not (eq? s "")) " " "")
+          (scheme-txt (car l)))))))
+  (string-append "(list " (_ l "") ")"))
 
 (define (choose l)
   (list-ref l (random (length l))))
@@ -100,7 +119,6 @@
             (console.log (+ "error loading:" fn))))
     (set! image.onload
           (lambda ()
-            (console.log (+ "loaded " (+ "images/" fn)))
             (set! image-lib (cons (list fn image) image-lib))
             (ctx.clearRect 0 0 screen-width screen-height)
             (centre-text ctx "Loading..." 240)
@@ -181,14 +199,13 @@
       (list "rect-button" name x y w h
             jitter callback #f (rndf)))
 
-(define (image-button name x y jitter image-name callback)
-    (let ((image (find-image image-name)))
-      (list "image-button"
-            name x y
-            image.width
-            image.height
-            jitter callback image-name
-            (rndf)))))
+(define (image-button name x y jitter drawable callback)
+  (list "image-button"
+        name x y
+        drawable.width
+        drawable.height
+        jitter callback drawable
+        (rndf)))
 
 (define (circle-button name x y r callback)
   (list "circle-button" name x y r r #f callback #f (rndf)))
@@ -202,7 +219,7 @@
 (define (button-h b) (list-ref b 5))
 (define (button-jitter b) (list-ref b 6))
 (define (button-callback b) (list-ref b 7))
-(define (button-image b) (list-ref b 8))
+(define (button-drawable b) (list-ref b 8))
 (define (button-offs b) (list-ref b 9))
 
 (define (dist-2d x1 y1 x2 y2)
@@ -276,7 +293,7 @@
                        (- 0 (/ (button-h b) 2))))
 
   (ctx.drawImage
-   (find-image (button-image b))
+   (button-drawable b)
    0 0)
 
   (set! ctx.fillStyle "#fff")
@@ -341,7 +358,8 @@
         ()
         0
         0
-        ()))
+        ()
+        (list 0 0)))
 
 (define (game-time g) (list-ref g 0))
 (define (game-modify-time v g) (list-replace g 0 v))
@@ -357,11 +375,15 @@
 (define (game-modify-mx v g) (list-replace g 5 v))
 (define (game-my g) (list-ref g 6))
 (define (game-modify-my v g) (list-replace g 6 v))
+(define (game-world-offset g) (list-ref g 7))
+(define (game-modify-world-offset g v) (list-replace g 7 v))
 
 (define (game-input g mx my)
-  (buttons-update (game-buttons g) mx my
-                  (game-modify-mx
-                   mx (game-modify-my my g))))
+  (let ((mx (- mx (car (game-world-offset g))))
+        (my (- my (cadr (game-world-offset g)))))
+    (buttons-update (game-buttons g) mx my
+                    (game-modify-mx
+                     mx (game-modify-my my g)))))
 
 ;; ----------------------------------------
 
@@ -381,8 +403,14 @@
           (set! ctx.fillStyle "#fff");
 ;;          (ctx.fillText (+ "Time is: " t) 10 750)
           (top-update-game t game)
+
+          (ctx.save)
+          (ctx.translate (car (game-world-offset game))
+                         (cadr (game-world-offset game)))
+
           (top-render-game ctx game)
-          (buttons-render! ctx t (game-buttons game)))
+          (buttons-render! ctx t (game-buttons game))
+          (ctx.restore))
         (requestAnimFrame top-render ctx)))
 
 (define game 0)
@@ -406,6 +434,7 @@
 
 (define (mutate-game f)
   (lambda (data)
+    (display data)(newline)
     (set! game (f game data))))
 
 (define (nightjar-heading ctx txt)

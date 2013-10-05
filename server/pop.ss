@@ -14,30 +14,45 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(require "eavdb.ss")
+(require "eavdb.ss" "utils.ss")
 (provide (all-defined-out))
 
-(define (pop-add db image genotype fitness)
+(define (pop-add db image game genotype fitness)
   (insert-entity db "pop" "egg" "gaia"
                  (list
                   (ktv "image" "varchar" image)
+                  (ktv "game" "varchar" game)
                   (ktv "genotype" "varchar" genotype)
                   (ktv "fitness" "real" fitness)))
   ;(pop-cull db table 256)
-  )
+  '("ok"))
+
+
+(define (fitness-thresh db perc)
+  (let* ((s (cadr
+             (db-select
+              db "select min(value), max(value) from pop_value_real where attribute_id = 'fitness'")))
+         (min (vector-ref s 0))
+         (max (vector-ref s 1))
+         (t (/ perc 100)))
+    (if (not min)
+        0
+        (+ min (* t (- max min))))))
 
 ;; random selection of count entities
-(define (pop-sample db image count)
+(define (pop-sample db image count thresh)
   (let ((s (db-select
             db (string-append
-                "select entity_id from " "pop"
-                "_entity where entity_type = ? order by random() limit ?")
-            "egg" count)))
+                "select g.value from pop_entity as e "
+                "join pop_value_varchar as g on (g.entity_id = e.entity_id) and (g.attribute_id = 'genotype') "
+                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.value > ?) "
+                "where entity_type = ? order by random() limit ?")
+            (inexact->exact (round (fitness-thresh db thresh))) "egg" count)))
     (if (null? s)
         '()
         (map
          (lambda (i)
-           (get-entity db "pop" (vector-ref i 0)))
+           (vector-ref i 0))
          (cdr s)))))
 
 ;(define (pop-cull db table size)

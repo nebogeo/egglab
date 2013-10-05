@@ -1,11 +1,5 @@
-@font-face {
-    font-family: 'minecraftia';
-    src: local('fonts/Minecraftia.ttf');
-}
-
-
 html, body {
-    font-family: 'minecraftia';
+    font-family: 'Press Start 2P';
     color: #fff;
     font-size:  20;
     background: #000;
@@ -15,5 +9,6 @@ html, body {
 #canvas {
     width: auto;
     height: 100%;
-    border: 1px dashed #fff;
+    border: 5px dashed #fff;
+    background: url(http://127.0.0.1:8888/images/bg.png);
 }

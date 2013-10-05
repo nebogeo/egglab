@@ -14,38 +14,394 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; gp
+
+(define egg-images
+  (build-list 24 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
+
+(define (transform x y r s) (list x y r s))
+
+(define (transform-x t) (list-ref t 0))
+(define (transform-y t) (list-ref t 1))
+(define (transform-rotate t) (list-ref t 2))
+(define (transform-scale t) (list-ref t 3))
+
+(define (transform-mutate t r)
+  (transform
+   (modulo (+ (transform-x t) (* (rndf) 10 r)) 127)
+   (modulo (+ (transform-y t) (* (rndf) 10 r)) 127)
+   (choose (list 0 (/ 6.282 4)))
+   1))
+
+(define (make-terminal)
+  (list
+   "terminal"
+   (transform (random 127) (random 127) (choose (list 0 (/ 6.282 4))) 1)
+   (choose egg-images)))
+
+(define (program-type t) (list-ref t 0))
+(define (terminal-transform t) (list-ref t 1))
+(define (terminal-image t) (list-ref t 2))
+
+(define (terminal-mutate t r)
+  (list
+   "terminal"
+   (transform-mutate (terminal-transform t) r)
+   (if (> r (rndf))
+       (choose egg-images)
+       (terminal-image t))))
+
+(define blend-modes
+  ;; "safe" modes (browser consisitent)
+  (list "source-over"
+        "source-atop"
+        "destination-over"
+        "destination-out"
+        "lighter"
+        "xor"))
+
+(define (make-operator a b)
+  (list "op" (choose blend-modes) a b))
+
+(define (operator-type t) (list-ref t 1))
+(define (operator-operand-a t) (list-ref t 2))
+(define (operator-operand-b t) (list-ref t 3))
+
+(define (operator-mutate t r)
+  (list
+   "op"
+   (if (> r (rndf)) (choose blend-modes) (operator-type t))
+   (egg-mutate (operator-operand-a t) r)
+   (egg-mutate (operator-operand-b t) r)))
+
+(define (make-random-egg depth)
+  (if (or (zero? depth) (< (random 10) 2))
+      (make-terminal)
+      (make-operator (make-random-egg (- depth 1))
+                     (make-random-egg (- depth 1)))))
+
+(define (egg-mutate egg r)
+  (if (eq? (program-type egg) "terminal")
+      (terminal-mutate egg r)
+      (operator-mutate egg r)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-individual fitness drawable egg pos)
+  (list fitness drawable egg pos))
+
+(define (individual-fitness i) (list-ref i 0))
+(define (individual-modify-fitness i v) (list-replace i 0 v))
+(define (individual-drawable i) (list-ref i 1))
+(define (individual-egg i) (list-ref i 2))
+(define (individual-pos i) (list-ref i 3))
+
+(define world-w 5000)
+(define world-h 500)
+
+(define safe-x 0.2)
+(define safe-y 0.2)
+
+(define (generate-image-pos)
+  (list (* screen-width (+ safe-x (* (rndf) (- 1 (* safe-x 2)))))
+        (* screen-height (+ safe-y (* (rndf) (- 1 (* safe-y 2)))))))
+
+(define (generate-image-pos2)
+  (list (+ 100 (random (- screen-width 200)))
+        (+ 100 (random (- screen-height 200)))))
+
+(define (make-pos game)
+  (if (eq? game "flicker")
+      (generate-image-pos2)
+      (list (random world-w) (random world-h))))
+
+(define (make-population game samples)
+  (let ((new-eggs (- 20 (length samples))))
+    (append
+     (map
+      (lambda (sample)
+        (let ((program (egg-mutate sample 0.01)))
+          (make-individual
+           0 (egg-drawable program)
+           program
+           (make-pos game))))
+      samples)
+
+     (build-list
+      new-eggs
+      (lambda (i)
+        (let ((program (make-random-egg 6)))
+          (make-individual
+           0 (egg-drawable program)
+           program
+           (make-pos game))))))))
+
+(define (egg-drawable program)
+  (let ((tcanvas (document.createElement "canvas")))
+    (set! tcanvas.width 128)
+    (set! tcanvas.height 128)
+    (let ((tctx (tcanvas.getContext "2d")))
+      (tctx.save)
+      (draw-egg tctx 0 0 program)
+      (tctx.restore)
+
+      (set! tctx.globalCompositeOperation "destination-atop")
+      (tctx.drawImage (find-image "egg.png") 0 0)
+
+      tcanvas)))
+
+(define (draw-egg ctx x y program)
+  (if (eq? (program-type program) "terminal")
+      (begin
+        (set! ctx.fillStyle
+              (ctx.createPattern
+               (find-image (terminal-image program) image-lib) "repeat"))
+
+        (ctx.translate 64 64)
+        (ctx.rotate (transform-rotate (terminal-transform program)))
+        (ctx.translate -64 -64)
+
+        (ctx.translate (transform-x (terminal-transform program))
+                       (transform-y (terminal-transform program)))
+
+        ;;        (ctx.scale (transform-scale (terminal-transform program))
+        ;;                   (transform-scale (terminal-transform program)))
+
+        (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
+                      (- 0 (transform-y (terminal-transform program)))
+                      (* 127 2) (* 127 2))
+
+        ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
+        ;;                   (/ 1 (transform-scale (terminal-transform program))))
+
+        (ctx.translate (- 0 (transform-x (terminal-transform program)))
+                       (- 0 (transform-y (terminal-transform program)))))
+        (let ((tcanvas (document.createElement "canvas")))
+          (set! tcanvas.width 128)
+          (set! tcanvas.height 128)
+          (let ((tctx (tcanvas.getContext "2d")))
+            (set! tctx.globalCompositeOperation "source-over")
+            (draw-egg tctx x y (operator-operand-a program))
+            (set! tctx.globalCompositeOperation (operator-type program))
+            (draw-egg tctx x y (operator-operand-b program))
+            (ctx.drawImage tcanvas 0 0)
+            ))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (egglab-data time eggs offset)
+  (list time eggs offset))
+
+(define (egglab-data-time d) (list-ref d 0))
+(define (egglab-data-modify-time d v) (list-replace d 0 v))
+(define (egglab-data-eggs d) (list-ref d 1))
+(define (egglab-data-modify-eggs d v) (list-replace d 1 v))
+(define (egglab-data-offset d) (list-ref d 2))
+(define (egglab-data-modify-offset d v) (list-replace d 2 v))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (nightjar-intro c)
-  (console.log "building intro")
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (set! ctx.font "normal 70pt 'Press Start 2P'")
+      (wrap-text ctx "EGGLAB" 0 200 1000 1000)
+      (set! ctx.font "normal 30pt 'Press Start 2P'"))
+    (game-modify-buttons
+     (list
+      (let ((i (find-image "button.png")))
+        (image-button
+         "Flicker game"
+         (- (- (/ screen-width 2) (/ i.width 2)) 20) 400
+         #f i
+         (lambda (c)
+           (server-call-mutate
+            "sample"
+            (list (list "image" "img")
+                  (list "count" 18)
+                  (list "thresh" 95))
+            (lambda (c data)
+              (nightjar-flicker-game
+               (game-modify-data
+                (lambda (d)
+                  (egglab-data
+                   (game-time c)
+                   (make-population "flicker" (eval-string data))
+                   (list (random 3000) (random 300))))
+                c))))
+           c)))
+
+      (let ((i (find-image "button.png")))
+        (image-button
+         "Scroll game"
+         (- (- (/ screen-width 2) (/ i.width 2)) 20) 600
+         #f i
+         (lambda (c)
+           (server-call-mutate
+            "sample"
+            (list (list "image" "img")
+                  (list "count" 18)
+                  (list "thresh" 95))
+            (lambda (c data)
+              (nightjar-scroll-game
+               (game-modify-data
+                (lambda (d)
+                  (egglab-data
+                   (game-time c)
+                   (make-population "scroll" (eval-string data))
+                   (list 0 0)))
+                c))))
+           c))))
+     c))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (find-egg drawable pop)
+  (let ((r (filter
+            (lambda (egg)
+              (eq? drawable (individual-drawable egg)))
+            pop)))
+    (if (null? r) #f (car r))))
+
+(define (send-remaining c)
+  (for-each
+   (lambda (b)
+     (let ((egg (find-egg (button-drawable b)
+                          (egglab-data-eggs (game-data c)))))
+       (msg egg)
+       (when egg
+             (server-call
+              "add"
+              (list
+               (list "image" "one")
+               (list "genotype" (dbg (scheme-txt (individual-egg egg))))
+               (list "fitness" 1500))))))
+   (game-buttons c)))
+
+(define (time-elapsed c)
+  (- (game-time c) (egglab-data-time (game-data c))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define speed 0.2)
+
+(define (screen-pos c egg)
+  (- screen-width
+     (+ (car (individual-pos egg))
+        (car (game-world-offset c)))))
+
+(define (fitness c egg)
+  (/ (screen-pos c egg) speed))
+
+(define (nightjar-scroll-game c)
+  (console.log "building - game")
+  (game-modify-update
+   (lambda (t c)
+     (let ((t (+ 1500 (* (time-elapsed c) (- 0 speed)))))
+       (if (> t -4500)
+           (game-modify-world-offset c (list t 0))
+           (begin
+             (send-remaining c)
+             (nightjar-intro
+              (game-modify-world-offset c (list 0 0)))))))
+   (game-modify-render
+    (lambda (ctx)
+      (ctx.drawImage (find-image "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg") 0 0)
+      (set! ctx.font "normal 30pt 'Press Start 2P'")
+
+      (ctx.fillText (string-append (length (game-buttons c)) " eggs remaining")
+                    (- 100 (car (game-world-offset c)))
+                    (- 100 (cadr (game-world-offset c)))))
+    (game-modify-buttons
+     (map
+      (lambda (egg)
+        (let ((pos (individual-pos egg)))
+          (image-button
+           "" (car pos) (cadr pos) #f
+           (individual-drawable egg)
+           (lambda (c)
+             (play-sound "sounds/button.wav")
+             (server-call
+              "add"
+              (list
+               (list "image" "")
+               (list "game" "scroll")
+               (list "genotype" (scheme-txt (individual-egg egg)))
+               (list "fitness" (fitness c egg))))
+
+             (alert (fitness c egg))
+
+             (game-modify-buttons
+              (filter
+               (lambda (b)
+                 (not (eq? (button-drawable b) (individual-drawable egg))))
+               (game-buttons c))
+              c)))))
+      (egglab-data-eggs (game-data c)))
+     c))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (flicker-build-egg c)
+  (msg "building egg")
+  (let ((egg (car (egglab-data-eggs (game-data c)))))
+    (let ((pos (individual-pos egg)))
+      (image-button
+       "" (car pos) (cadr pos) #f
+       (individual-drawable egg)
+       (lambda (c)
+         (play-sound "sounds/button.wav")
+
+         (server-call
+          "add"
+          (list
+           (list "image" "")
+           (list "game" "flicker")
+           (list "genotype" (scheme-txt (individual-egg egg)))
+           (list "fitness" (time-elapsed c))))
+
+         (if (null? (egglab-data-eggs (game-data c)))
+             (game-intro c)
+             (game-modify-buttons
+              (list
+               (flicker-build-egg
+                (dbg (game-modify-data
+                      (lambda (d)
+                        (egglab-data-modify-offset
+                         (egglab-data-modify-eggs
+                          (egglab-data-modify-time
+                           d
+                           (game-time c))
+                          (cdr (egglab-data-eggs d)))
+                         (list (random 2000) (random 300))))
+                      c))))
+              c)))))))
+
+(define (nightjar-flicker-game c)
+  (console.log "building - game")
   (game-modify-render
    (lambda (ctx)
-     (set! ctx.font "normal 30pt courier")
-     (wrap-text ctx "EGGLAB" 50 100 1000 100))
+     (ctx.drawImage (find-image "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg")
+                    (- 0 (car (egglab-data-offset (game-data c))))
+                    (- 0 (cadr (egglab-data-offset (game-data c)))))
+     (set! ctx.font "normal 30pt 'Press Start 2P'"))
    (game-modify-buttons
     (list
-     (image-button
-      "Start playing"
-      700 200
-      #t
-      "button.png"
-      (lambda (c)
-        (nightjar-game c)))
-     ) c)))
+     (flicker-build-egg c))
+    c)))
 
-(define (nightjar-game c)
-  (console.log "building game")
-  (game-modify-render
-   (lambda (ctx)
-     (let ((t (modulo (* (game-time c) -0.2) 1000)))
-       (ctx.drawImage (find-image "bg-synth/0.jpg") t -500))
-     (set! ctx.font "normal 30pt courier"))
-   (game-modify-buttons () c)))
 
-(set! ctx.font "normal 50pt courier")
+(set! ctx.font "normal 50pt 'Press Start 2P'")
 
 (load-images!
- (list "bg-synth/0.jpg"
-       "bg-synth/1.png"
-       "bg-synth/2.png"
-       "button.png")
+ (append
+  (list
+   "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg"
+   "button.png"
+   "egg.png")
+  egg-images)
  (lambda ()
    (start-game canvas ctx)))

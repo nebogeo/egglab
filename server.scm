@@ -46,39 +46,41 @@
     (lambda ()
       (pluto-response (scheme->txt '("hello")))))
 
-   ;; http://localhost:8888/mongoose?fn=sync&table=sync&entity-type=mongoose&unique-id=dave1234&dirty=1&version=0&next:varchar=%22foo%22&blah:int=20
+   (register
+    (req 'sample '(image count thresh))
+    (lambda (image count thresh)
+      (pluto-response
+       (string-append
+        (scheme->txt
+         (string-append
+          "(list "
+          (apply
+           string-append
+           (pop-sample db image (string->number count) (string->number thresh)))
+          ")"))))))
 
    (register
-    (req 'sample '(image count))
-    (lambda (image count)
+    (req 'add '(image game genotype fitness))
+    (lambda (image game genotype fitness)
       (pluto-response
        (scheme->txt
-        (pop-sample db image (string->number count))))))
-
-   (register
-    (req 'add '(image genotype fitness))
-    (lambda (image genotype fitness)
-      (pluto-response
-       (scheme->txt
-        (pop-add db image genotype (string->number fitness))))))
-
-
+        (pop-add db image game genotype (string->number fitness))))))
    ))
 
 (define (start request)
   (let ((values (url-query (request-uri request))))
-    ;;(msg "got a request" request)
     (if (not (null? values))   ; do we have some parameters?
         (let ((name (assq 'fn values)))
-          (when name           ; is this a well formed request?
-                (request-dispatch
-                 registered-requests
-                 (req (string->symbol (cdr name))
-                      (filter
-                       (lambda (v)
-                         (not (eq? (car v) 'fn)))
-                       values)))))
-        (pluto-response "malformed thingy"))))
+          (if name           ; is this a well formed request?
+              (request-dispatch
+               registered-requests
+               (req (string->symbol (cdr name))
+                    (filter
+                     (lambda (v)
+                       (not (eq? (car v) 'fn)))
+                     values)))
+              (pluto-response (dbg "bad formed request thing"))))
+        (pluto-response (dbg "malformed thingy")))))
 
 (printf "server is running...~n")
 
