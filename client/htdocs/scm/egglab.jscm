@@ -363,8 +363,12 @@
            (list "genotype" (scheme-txt (individual-egg egg)))
            (list "fitness" (time-elapsed c))))
 
-         (if (null? (egglab-data-eggs (game-data c)))
-             (game-intro c)
+         (msg (length (egglab-data-eggs (game-data c))))
+
+         (if (eq? (length (egglab-data-eggs (game-data c))) 1)
+             (begin
+               (msg "reset...")
+               (nightjar-intro c))
              (game-modify-buttons
               (list
                (flicker-build-egg
