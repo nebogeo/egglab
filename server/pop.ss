@@ -24,7 +24,7 @@
                   (ktv "game" "varchar" game)
                   (ktv "genotype" "varchar" genotype)
                   (ktv "fitness" "real" fitness)))
-  ;(pop-cull db table 256)
+  ;;(pop-cull db table 256)
   '("ok"))
 
 

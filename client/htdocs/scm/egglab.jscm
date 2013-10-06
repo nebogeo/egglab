@@ -131,7 +131,8 @@
      (build-list
       new-eggs
       (lambda (i)
-        (let ((program (make-random-egg 6)))
+        ;; fixme
+        (let ((program (eval-string (scheme-txt (make-random-egg 6)))))
           (make-individual
            0 (egg-drawable program)
            program
@@ -140,7 +141,6 @@
 (define (make-stats-population game samples)
   (index-map
    (lambda (i program)
-     (msg i)
      (let ((x (modulo i 7)) (y (Math.floor (/ i 7))))
        (let ((xx (+ 100 (* x 160)))
              (yy (+ 300 (* y 150))))
@@ -195,9 +195,14 @@
           (set! tcanvas.height 128)
           (let ((tctx (tcanvas.getContext "2d")))
             (set! tctx.globalCompositeOperation "source-over")
+            (tctx.save)
             (draw-egg tctx x y (operator-operand-a program))
+            (tctx.restore)
             (set! tctx.globalCompositeOperation (operator-type program))
+            (tctx.save)
             (draw-egg tctx x y (operator-operand-b program))
+            (tctx.restore)
+            (set! tctx.globalCompositeOperation "source-over")
             (ctx.drawImage tcanvas 0 0)
             ))))
 
@@ -278,7 +283,7 @@
            (server-call-mutate
             "stats"
             (list (list "image" "img")
-                  (list "count" 20))
+                  (list "count" 21))
             (lambda (c data)
               (nightjar-stats
                (game-modify-data
@@ -308,7 +313,6 @@
    (lambda (b)
      (let ((egg (find-egg (button-drawable b)
                           (egglab-data-eggs (game-data c)))))
-       (msg egg)
        (when egg
              (server-call
               "add"
@@ -400,8 +404,6 @@
            (list "genotype" (scheme-txt (individual-egg egg)))
            (list "fitness" (time-elapsed c))))
 
-         (msg (length (egglab-data-eggs (game-data c))))
-
          (if (eq? (length (egglab-data-eggs (game-data c))) 1)
              (begin
                (msg "reset...")
@@ -447,7 +449,6 @@
        (lambda (egg)
          (let ((pos (individual-pos egg)))
            (ctx.save)
-           (set! ctx.fillStyle "#000")
            (ctx.drawImage (individual-drawable egg)
                           (car pos) (cadr pos))
            (ctx.restore)))
