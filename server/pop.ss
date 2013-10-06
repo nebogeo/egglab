@@ -62,7 +62,7 @@
                 "select g.value from pop_entity as e "
                 "join pop_value_varchar as g on (g.entity_id = e.entity_id) and (g.attribute_id = 'genotype') "
                 "join pop_value_real as v on (v.entity_id = e.entity_id) "
-                "where entity_type = ? order by v.value limit ?")
+                "where entity_type = ? order by v.value desc limit ?")
             "egg" count)))
     (if (null? s)
         '()
