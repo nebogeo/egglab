@@ -276,7 +276,7 @@
 
       (let ((i (find-image "button.png")))
         (image-button
-         "Stats"
+         "Best eggs"
          (- (- (/ screen-width 2) (/ i.width 2)) 20) 800
          #f i
          (lambda (c)
@@ -442,7 +442,7 @@
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "normal 30pt 'Press Start 2P'")
-      (wrap-text ctx "Stats" 0 200 1000 1000)
+      (wrap-text ctx "Best eggs" 0 200 1000 1000)
       (map
        (lambda (egg)
          (let ((pos (individual-pos egg)))
