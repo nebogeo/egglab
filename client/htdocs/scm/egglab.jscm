@@ -121,7 +121,7 @@
     (append
      (map
       (lambda (sample)
-        (let ((program (egg-mutate sample 0.01)))
+        (let ((program (egg-mutate sample 0.001)))
           (make-individual
            0 (egg-drawable program)
            program
