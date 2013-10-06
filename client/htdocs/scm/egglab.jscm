@@ -345,7 +345,7 @@
        (if (> t -4500)
            (game-modify-world-offset c (list t 0))
            (begin
-             (send-remaining c)
+             ;;(send-remaining c)
              (nightjar-intro
               (game-modify-world-offset c (list 0 0)))))))
    (game-modify-render
