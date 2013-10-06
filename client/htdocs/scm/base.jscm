@@ -55,6 +55,16 @@
      l)
     #f))
 
+(define index-map
+  (lambda (fn l)
+    (cadr (foldl
+           (lambda (e r)
+             (list
+              (+ (car r) 1)
+              (append (cadr r) (list (fn (car r) e)))))
+           (list 0 ())
+           l))))
+
 (define display (lambda (str) (zc.to_page "output" str)))
 
 (define newline (lambda () (zc.to_page "output" "\n")))

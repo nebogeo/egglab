@@ -137,6 +137,19 @@
            program
            (make-pos game))))))))
 
+(define (make-stats-population game samples)
+  (index-map
+   (lambda (i program)
+     (msg i)
+     (let ((x (modulo i 7)) (y (Math.floor (/ i 7))))
+       (let ((xx (+ 100 (* x 160)))
+             (yy (+ 300 (* y 150))))
+         (make-individual
+          0 (egg-drawable program)
+          program
+          (list xx yy)))))
+   samples))
+
 (define (egg-drawable program)
   (let ((tcanvas (document.createElement "canvas")))
     (set! tcanvas.width 128)
@@ -254,7 +267,31 @@
                    (make-population "scroll" (eval-string data))
                    (list 0 0)))
                 c))))
-           c))))
+           c)))
+
+      (let ((i (find-image "button.png")))
+        (image-button
+         "Stats"
+         (- (- (/ screen-width 2) (/ i.width 2)) 20) 800
+         #f i
+         (lambda (c)
+           (server-call-mutate
+            "stats"
+            (list (list "image" "img")
+                  (list "count" 20))
+            (lambda (c data)
+              (nightjar-stats
+               (game-modify-data
+                (lambda (d)
+                  (egglab-data
+                   0
+                   (make-stats-population c (eval-string data))
+                   (list 0 0)))
+                c))))
+           c)))
+
+
+      )
      c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -396,6 +433,36 @@
     (list
      (flicker-build-egg c))
     c)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (nightjar-stats c)
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (set! ctx.font "normal 30pt 'Press Start 2P'")
+      (wrap-text ctx "Stats" 0 200 1000 1000)
+      (map
+       (lambda (egg)
+         (let ((pos (individual-pos egg)))
+           (ctx.save)
+           (set! ctx.fillStyle "#000")
+           (ctx.drawImage (individual-drawable egg)
+                          (car pos) (cadr pos))
+           (ctx.restore)))
+       (egglab-data-eggs (game-data c))))
+    (game-modify-buttons
+     (list
+      (let ((i (find-image "button.png")))
+        (image-button
+         "Back"
+         (- (- (/ screen-width 2) (/ i.width 2)) 20) 750
+         #f i
+         (lambda (c)
+           (nightjar-intro c)))))
+     c))))
+
 
 
 (set! ctx.font "normal 50pt 'Press Start 2P'")

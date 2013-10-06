@@ -60,6 +60,20 @@
           ")"))))))
 
    (register
+    (req 'stats '(image count))
+    (lambda (image count)
+      (pluto-response
+       (string-append
+        (scheme->txt
+         (string-append
+          "(list "
+          (apply
+           string-append
+           (pop-stats db image (string->number count)))
+          ")"))))))
+
+
+   (register
     (req 'add '(image game genotype fitness))
     (lambda (image game genotype fitness)
       (pluto-response

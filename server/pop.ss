@@ -55,6 +55,23 @@
            (vector-ref i 0))
          (cdr s)))))
 
+;; random selection of count entities
+(define (pop-stats db image count)
+  (let ((s (db-select
+            db (string-append
+                "select g.value from pop_entity as e "
+                "join pop_value_varchar as g on (g.entity_id = e.entity_id) and (g.attribute_id = 'genotype') "
+                "join pop_value_real as v on (v.entity_id = e.entity_id) "
+                "where entity_type = ? order by v.value limit ?")
+            "egg" count)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (vector-ref i 0))
+         (cdr s)))))
+
+
 ;(define (pop-cull db table size)
 ;  (let ((s (db-select
 ;            db (string-append
