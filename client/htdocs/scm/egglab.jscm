@@ -373,8 +373,6 @@
                (list "genotype" (scheme-txt (individual-egg egg)))
                (list "fitness" (fitness c egg))))
 
-             (alert (fitness c egg))
-
              (game-modify-buttons
               (filter
                (lambda (b)
