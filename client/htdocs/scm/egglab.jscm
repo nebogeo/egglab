@@ -219,7 +219,7 @@
 (define (lerp a b t) (+ (* b t) (* a (- 1 t))))
 
 (define (inner-draw-genome ctx program centrex centrey d start end dist)
-  (let ((sc (lerp 0.4 0.2 (/ d 6))))
+  (let ((sc (lerp 0.5 0.3 (/ d 6))))
     (let ((posx (+ centrex (* (sin (+ start (* (/ (- end start) 2.0)))) d dist)))
           (posy (+ centrey (* (cos (+ start (* (/ (- end start) 2.0)))) d dist)))
           (size (* sc 128)))
@@ -254,11 +254,11 @@
 
 (define (draw-egg-genome ctx egg centrex centrey)
   (ctx.beginPath)
-  (ctx.arc centrex centrey 400 0 (* 2 Math.PI) #f)
-  (set! ctx.fillStyle "#256")
+  (ctx.arc centrex centrey 600 0 (* 2 Math.PI) #f)
+  (set! ctx.fillStyle "#278")
   (ctx.fill)
-  (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 60)
-  (set! ctx.fillStyle "#000"))
+  (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 80)
+  (set! ctx.fillStyle "#fff"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -525,13 +525,13 @@
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
      (draw-egg-genome ctx egg (/ screen-width 2) (/ screen-height 2))
-     (wrap-text ctx "Egg genome" 0 50 1000 1000))
+     (ctx.fillText "Egg genome" 20 50))
    (game-modify-buttons
     (list
      (let ((i (find-image "button.png")))
        (image-button
         "Back"
-        (- (- (/ screen-width 2) (/ i.width 2)) 20) 850
+        1150 850
         #f i
         (lambda (c)
           (nightjar-best c)))))
