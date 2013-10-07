@@ -149,6 +149,10 @@
 
 ;; ----------------------------------------
 
+(define (fill-centre-text ctx txt x y)
+  (let ((m (ctx.measureText txt)))
+    (ctx.fillText txt (- x (/ m.width 2)) y)))
+
 (define (centre-text ctx txt y)
   (let ((m (ctx.measureText txt)))
     (ctx.fillText txt (- (/ screen-width 2) (/ m.width 2)) y)))

@@ -138,7 +138,7 @@
            program
            (make-pos game))))))))
 
-(define (make-stats-population game samples)
+(define (make-best-population game samples)
   (index-map
    (lambda (i program)
      (let ((x (modulo i 7)) (y (Math.floor (/ i 7))))
@@ -155,56 +155,110 @@
     (set! tcanvas.width 128)
     (set! tcanvas.height 128)
     (let ((tctx (tcanvas.getContext "2d")))
-      (tctx.save)
-      (draw-egg tctx 0 0 program)
-      (tctx.restore)
-
+      (draw-egg tctx program)
       (set! tctx.globalCompositeOperation "destination-atop")
       (tctx.drawImage (find-image "egg.png") 0 0)
-
       tcanvas)))
 
-(define (draw-egg ctx x y program)
+(define (draw-terminal ctx program)
+  (ctx.save)
+  (set! ctx.fillStyle
+        (ctx.createPattern
+         (find-image (terminal-image program) image-lib) "repeat"))
+
+  (ctx.translate 64 64)
+  (ctx.rotate (transform-rotate (terminal-transform program)))
+  (ctx.translate -64 -64)
+
+  (ctx.translate (transform-x (terminal-transform program))
+                 (transform-y (terminal-transform program)))
+  ;;        (ctx.scale (transform-scale (terminal-transform program))
+  ;;                   (transform-scale (terminal-transform program)))
+  (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
+                (- 0 (transform-y (terminal-transform program)))
+                (* 127 2) (* 127 2))
+  ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
+  ;;                   (/ 1 (transform-scale (terminal-transform program))))
+  ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
+  ;;               (- 0 (transform-y (terminal-transform program))))
+  (ctx.restore))
+
+(define (draw-op ctx program)
+  (let ((tcanvas (document.createElement "canvas")))
+    (set! tcanvas.width 128)
+    (set! tcanvas.height 128)
+    (let ((tctx (tcanvas.getContext "2d")))
+      (set! tctx.globalCompositeOperation "source-over")
+      (draw-egg tctx (operator-operand-a program))
+      (set! tctx.globalCompositeOperation (operator-type program))
+      (draw-egg tctx (operator-operand-b program))
+      (set! tctx.globalCompositeOperation "source-over")
+      (ctx.drawImage tcanvas 0 0))))
+
+(define (draw-egg ctx program)
   (if (eq? (program-type program) "terminal")
-      (begin
-        (set! ctx.fillStyle
-              (ctx.createPattern
-               (find-image (terminal-image program) image-lib) "repeat"))
+      (draw-terminal ctx program)
+      (draw-op ctx program)))
 
-        (ctx.translate 64 64)
-        (ctx.rotate (transform-rotate (terminal-transform program)))
-        (ctx.translate -64 -64)
+(define (sin a) (Math.sin a))
+(define (cos a) (Math.cos a))
 
-        (ctx.translate (transform-x (terminal-transform program))
-                       (transform-y (terminal-transform program)))
+(define (draw-genome-node ctx program centrex centrey posx posy d apa start end n dist)
+  (let ((childstart (+ start (* apa n))))
+    (let ((childend (+ childstart apa)))
+      (let ((tox (+ centrex (* (sin (+ childstart (* (/ (- childend childstart) 2.0)))) (+ d 1) dist)))
+            (toy (+ centrey (* (cos (+ childstart (* (/ (- childend childstart) 2.0)))) (+ d 1) dist))))
+        (set! ctx.strokeStyle "#000")
+        (set! ctx.lineWidth 2)
+        (ctx.beginPath)
+        (ctx.moveTo posx posy)
+        (ctx.lineTo tox toy)
+        (ctx.stroke)
+        (inner-draw-genome ctx program centrex centrey (+ d 1) childstart childend dist)))))
 
-        ;;        (ctx.scale (transform-scale (terminal-transform program))
-        ;;                   (transform-scale (terminal-transform program)))
+(define (lerp a b t) (+ (* b t) (* a (- 1 t))))
 
-        (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
-                      (- 0 (transform-y (terminal-transform program)))
-                      (* 127 2) (* 127 2))
+(define (inner-draw-genome ctx program centrex centrey d start end dist)
+  (let ((sc (lerp 0.4 0.2 (/ d 6))))
+    (let ((posx (+ centrex (* (sin (+ start (* (/ (- end start) 2.0)))) d dist)))
+          (posy (+ centrey (* (cos (+ start (* (/ (- end start) 2.0)))) d dist)))
+          (size (* sc 128)))
+      (set! ctx.strokeStyle "#000")
+      (set! ctx.lineWidth 2)
+      (ctx.strokeRect (- posx (/ size 2)) (- posy (/ size 2)) size size)
+      (if (eq? (program-type program) "terminal")
+          (let ((tcanvas (document.createElement "canvas")))
+            (set! tcanvas.width size)
+            (set! tcanvas.height size)
+            (let ((tctx (tcanvas.getContext "2d")))
+              (tctx.scale sc sc)
+              (draw-terminal tctx program)
+              (ctx.drawImage tcanvas (- posx (/ size 2)) (- posy (/ size 2)))))
+          (let ((apa (/ (- end start) 2)))
 
-        ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
-        ;;                   (/ 1 (transform-scale (terminal-transform program))))
+            (draw-genome-node ctx (operator-operand-a program)
+                              centrex centrey posx posy d apa start end 0 dist)
+            (draw-genome-node ctx (operator-operand-b program)
+                              centrex centrey posx posy d apa start end 1 dist)
 
-        (ctx.translate (- 0 (transform-x (terminal-transform program)))
-                       (- 0 (transform-y (terminal-transform program)))))
-        (let ((tcanvas (document.createElement "canvas")))
-          (set! tcanvas.width 128)
-          (set! tcanvas.height 128)
-          (let ((tctx (tcanvas.getContext "2d")))
-            (set! tctx.globalCompositeOperation "source-over")
-            (tctx.save)
-            (draw-egg tctx x y (operator-operand-a program))
-            (tctx.restore)
-            (set! tctx.globalCompositeOperation (operator-type program))
-            (tctx.save)
-            (draw-egg tctx x y (operator-operand-b program))
-            (tctx.restore)
-            (set! tctx.globalCompositeOperation "source-over")
-            (ctx.drawImage tcanvas 0 0)
-            ))))
+            (ctx.save)
+            (ctx.translate (- posx (/ size 2))
+                           (- posy (/ size 2)))
+            (ctx.scale sc sc)
+            (draw-op ctx program)
+            (set! ctx.fillStyle "#000")
+            (set! ctx.font "normal 20pt 'Press Start 2P'")
+            (fill-centre-text ctx (operator-type program) 64
+                              (if (eq? d 0) 200 180))
+            (ctx.restore))))))
+
+(define (draw-egg-genome ctx egg centrex centrey)
+  (ctx.beginPath)
+  (ctx.arc centrex centrey 400 0 (* 2 Math.PI) #f)
+  (set! ctx.fillStyle "#256")
+  (ctx.fill)
+  (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 60)
+  (set! ctx.fillStyle "#000"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -285,12 +339,12 @@
             (list (list "image" "img")
                   (list "count" 21))
             (lambda (c data)
-              (nightjar-stats
+              (nightjar-best
                (game-modify-data
                 (lambda (d)
                   (egglab-data
                    0
-                   (make-stats-population c (eval-string data))
+                   (make-best-population c (eval-string data))
                    (list 0 0)))
                 c))))
            c)))
@@ -436,32 +490,52 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (nightjar-stats c)
+(define (nightjar-best c)
   (game-modify-update
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "normal 30pt 'Press Start 2P'")
-      (wrap-text ctx "Best eggs" 0 200 1000 1000)
-      (map
-       (lambda (egg)
-         (let ((pos (individual-pos egg)))
-           (ctx.save)
-           (ctx.drawImage (individual-drawable egg)
-                          (car pos) (cadr pos))
-           (ctx.restore)))
-       (egglab-data-eggs (game-data c))))
+      (wrap-text ctx "Best eggs" 0 200 1000 1000))
     (game-modify-buttons
-     (list
+     (cons
       (let ((i (find-image "button.png")))
         (image-button
          "Back"
          (- (- (/ screen-width 2) (/ i.width 2)) 20) 750
          #f i
          (lambda (c)
-           (nightjar-intro c)))))
+           (nightjar-intro c))))
+      (map
+       (lambda (egg)
+         (let ((pos (individual-pos egg)))
+           (image-button
+            "" (car pos) (cadr pos) #f
+            (individual-drawable egg)
+            (lambda (c)
+              (nightjar-egg-view c egg)))))
+
+       (egglab-data-eggs (game-data c)))
+
+      )
      c))))
 
+(define (nightjar-egg-view c egg)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (draw-egg-genome ctx egg (/ screen-width 2) (/ screen-height 2))
+     (wrap-text ctx "Egg genome" 0 50 1000 1000))
+   (game-modify-buttons
+    (list
+     (let ((i (find-image "button.png")))
+       (image-button
+        "Back"
+        (- (- (/ screen-width 2) (/ i.width 2)) 20) 850
+        #f i
+        (lambda (c)
+          (nightjar-best c)))))
+    c)))
 
 
 (set! ctx.font "normal 50pt 'Press Start 2P'")
