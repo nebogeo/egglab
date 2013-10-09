@@ -65,6 +65,15 @@
            (list 0 ())
            l))))
 
+(define index-for-each
+  (lambda (fn l)
+    (foldl
+     (lambda (e r)
+       (fn r e)
+       (+ r 1))
+     0
+     l)))
+
 (define display (lambda (str) (zc.to_page "output" str)))
 
 (define newline (lambda () (zc.to_page "output" "\n")))

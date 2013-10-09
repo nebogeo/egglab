@@ -10,5 +10,5 @@ html, body {
     width: 80%;
     min-width: 800px;
     border: 5px dashed #fff;
-    background: url(http://nightjar.exeter.ac.uk/egglab/images/bg.png);
+    background: url(../images/bg.png);
 }

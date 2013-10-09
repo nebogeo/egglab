@@ -262,8 +262,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (egglab-data time eggs offset)
-  (list time eggs offset))
+(define (egglab-data time eggs offset land images replicate username)
+  (list time eggs offset land images username))
+
+(define (egglab-data-start-game d time eggs offset)
+  (list time eggs offset (list-ref d 3) (list-ref d 4) (list-ref d 5)))
 
 (define (egglab-data-time d) (list-ref d 0))
 (define (egglab-data-modify-time d v) (list-replace d 0 v))
@@ -271,86 +274,222 @@
 (define (egglab-data-modify-eggs d v) (list-replace d 1 v))
 (define (egglab-data-offset d) (list-ref d 2))
 (define (egglab-data-modify-offset d v) (list-replace d 2 v))
+(define (egglab-data-land d) (list-ref d 3))
+(define (egglab-data-modify-land d v) (list-replace d 3 v))
+(define (egglab-data-images d) (list-ref d 4))
+(define (egglab-data-modify-images d v) (list-replace d 4 v))
+(define (egglab-data-replicate d) (list-ref d 4))
+(define (egglab-data-modify-replicate v) (list-replace d 4 v))
+(define (egglab-data-username d) (list-ref d 4))
+(define (egglab-data-modify-username v) (list-replace d 4 v))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (nightjar-intro c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 70pt 'Press Start 2P'")
+     (wrap-text ctx "EGGLAB" 0 200 1000 1000)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (wrap-text ctx "Evolve eggs for science!" 0 250 1000 1000)
+     (set! ctx.font "normal 20pt 'Press Start 2P'"))
+   (game-modify-buttons
+    (list
+     (image-button
+      "Click the egg to continue!"
+      (/ screen-width 2) 700
+      "flashy" (find-image "button.png")
+      (lambda (c)
+        (msg "hello")
+        (nightjar-choose-location c))))
+    c)))
+
+(define (nightjar-choose-location c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (wrap-text ctx "Choose your location" 0 50 1000 1000)
+     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (wrap-text ctx "Land of the ..." 0 100 1000 1000))
+
+   (game-modify-buttons
+    (list
+
+     (image-button
+      "Mozambique Nightjar" (/ screen-width 2) 450
+      "jumpy" (find-image "cf.png")
+      (lambda (c)
+        (nightjar-env
+         (game-modify-data
+          (lambda (d)
+            (egglab-data 0 () (list 0 0) "CF" (random 10) "???"))
+          c))))
+
+    (image-button
+     "Fiery-necked Nightjar" (+ (/ screen-width 2) 300) 750
+     "jumpy" (find-image "cp.png")
+     (lambda (c)
+       (nightjar-env
+        (game-modify-data
+         (lambda (d)
+           (egglab-data 0 () (list 0 0) "CP" (random 10) "???"))
+          c))))
+
+    (image-button
+     "Pennant-winged Nightjar"  (- (/ screen-width 2) 300) 800
+     "jumpy" (find-image "mv.png")
+     (lambda (c)
+       (nightjar-env
+        (game-modify-data
+         (lambda (d)
+           (egglab-data 0 () (list 0 0) "MV" (random 10) "???"))
+         c))))
+
+    (image-button
+     "About" (- (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
+     (lambda (c) (nightjar-about c)))
+
+    (image-button
+     "Back" (+ (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
+     (lambda (c) (nightjar-intro c))))
+
+
+    c)))
+
+(define (nightjar-env c)
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (set! ctx.font "normal 20pt 'Press Start 2P'")
+      (wrap-text
+       ctx (string-append "Land of the "
+                          (cond
+                           ((eq? (egglab-data-land (game-data c)) "CF")
+                            "Mozambique Nightjar")
+                           ((eq? (egglab-data-land (game-data c)) "CP")
+                            "Fiery-necked Nightjar")
+                           ((eq? (egglab-data-land (game-data c)) "MV")
+                            "Pennant-winged Nightjar")
+                           (else "oops")))
+       0 200 1000 1000)
+      (set! ctx.font "normal 20pt 'Press Start 2P'"))
+    (game-modify-buttons
+     (list
+      (image-button
+       "Flicker game" (/ screen-width 2) 400 "jumpy" (find-image "button.png")
+       (lambda (c)
+         (server-call-mutate
+          "sample"
+          (list (list "image" "img")
+                (list "count" 18)
+                (list "thresh" 95))
+          (lambda (c data)
+            (nightjar-research
+             "flicker"
+             (game-modify-data
+              (lambda (d)
+                (egglab-data
+                 (game-time c)
+                 (make-population "flicker" (eval-string data))
+                 (list (random 3000) (random 300))))
+              c))))
+         c))
+
+      (image-button
+       "Scroll game" (/ screen-width 2) 600 "jumpy" (find-image "button.png")
+       (lambda (c)
+         (server-call-mutate
+          "sample"
+          (list (list "image" "img")
+                (list "count" 18)
+                (list "thresh" 95))
+          (lambda (c data)
+            (nightjar-research
+             "scroll"
+             (game-modify-data
+              (lambda (d)
+                (egglab-data
+                 (game-time c)
+                 (make-population "scroll" (eval-string data))
+                 (list 0 0)))
+              c))))
+         c))
+
+      (image-button
+       "Best eggs" (/ screen-width 2) 800 "jumpy" (find-image "button.png")
+       (lambda (c)
+         (server-call-mutate
+          "stats"
+          (list (list "image" "img")
+                (list "count" 21))
+          (lambda (c data)
+            (nightjar-best
+             (game-modify-data
+              (lambda (d)
+                (egglab-data
+                 0
+                 (make-best-population c (eval-string data))
+                 (list 0 0)))
+              c))))
+         c))
+
+      (image-button
+       "Back" (+ (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
+       (lambda (c) (nightjar-choose-location c)))
+
+
+      )
+     c))))
+
+(define (nightjar-research game-type c)
   (game-modify-update
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "normal 70pt 'Press Start 2P'")
       (wrap-text ctx "EGGLAB" 0 200 1000 1000)
-      (set! ctx.font "normal 30pt 'Press Start 2P'"))
+      (set! ctx.font "normal 20pt 'Press Start 2P'")
+      (wrap-text ctx "Ok to donate your game to science?" 0 300 1000 1000))
     (game-modify-buttons
      (list
-      (let ((i (find-image "button.png")))
-        (image-button
-         "Flicker game"
-         (- (- (/ screen-width 2) (/ i.width 2)) 20) 400
-         #f i
-         (lambda (c)
-           (server-call-mutate
-            "sample"
-            (list (list "image" "img")
-                  (list "count" 18)
-                  (list "thresh" 95))
-            (lambda (c data)
+      (image-button
+       "Yes!" (/ screen-width 2) 400 "jumpy" (find-image "button.png")
+       (lambda (c)
+         (server-call-mutate
+          "sample"
+          (list (list "image" "img")
+                (list "count" 18)
+                (list "thresh" 95))
+          (lambda (c data)
+            (cond
+             ((eq? game-type "flicker")
               (nightjar-flicker-game
                (game-modify-data
                 (lambda (d)
-                  (egglab-data
+                  (egglab-data-start-game
+                   d
                    (game-time c)
                    (make-population "flicker" (eval-string data))
                    (list (random 3000) (random 300))))
-                c))))
-           c)))
-
-      (let ((i (find-image "button.png")))
-        (image-button
-         "Scroll game"
-         (- (- (/ screen-width 2) (/ i.width 2)) 20) 600
-         #f i
-         (lambda (c)
-           (server-call-mutate
-            "sample"
-            (list (list "image" "img")
-                  (list "count" 18)
-                  (list "thresh" 95))
-            (lambda (c data)
+                c)))
+             (else
               (nightjar-scroll-game
                (game-modify-data
                 (lambda (d)
-                  (egglab-data
+                  (egglab-data-start-game
+                   d
                    (game-time c)
                    (make-population "scroll" (eval-string data))
                    (list 0 0)))
-                c))))
-           c)))
-
-      (let ((i (find-image "button.png")))
-        (image-button
-         "Best eggs"
-         (- (- (/ screen-width 2) (/ i.width 2)) 20) 800
-         #f i
-         (lambda (c)
-           (server-call-mutate
-            "stats"
-            (list (list "image" "img")
-                  (list "count" 21))
-            (lambda (c data)
-              (nightjar-best
-               (game-modify-data
-                (lambda (d)
-                  (egglab-data
-                   0
-                   (make-best-population c (eval-string data))
-                   (list 0 0)))
-                c))))
-           c)))
+                c))))))
+         c))
 
 
-      )
+      (image-button
+       "No thanks" (/ screen-width 2) 800 "jumpy" (find-image "button.png")
+       (lambda (c) (nightjar-intro c))))
+
      c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -405,7 +544,7 @@
    (game-modify-render
     (lambda (ctx)
       (ctx.drawImage (find-image "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg") 0 0)
-      (set! ctx.font "normal 30pt 'Press Start 2P'")
+      (set! ctx.font "normal 20pt 'Press Start 2P'")
 
       (ctx.fillText (string-append (length (game-buttons c)) " eggs remaining")
                     (- 100 (car (game-world-offset c)))
@@ -499,13 +638,9 @@
       (wrap-text ctx "Best eggs" 0 200 1000 1000))
     (game-modify-buttons
      (cons
-      (let ((i (find-image "button.png")))
-        (image-button
-         "Back"
-         (- (- (/ screen-width 2) (/ i.width 2)) 20) 750
-         #f i
-         (lambda (c)
-           (nightjar-intro c))))
+      (image-button
+       "Back" (/ screen-width 2) 750 #f (find-image "button.png")
+       (lambda (c) (nightjar-intro c)))
       (map
        (lambda (egg)
          (let ((pos (individual-pos egg)))
@@ -516,7 +651,6 @@
               (nightjar-egg-view c egg)))))
 
        (egglab-data-eggs (game-data c)))
-
       )
      c))))
 
@@ -528,15 +662,15 @@
      (ctx.fillText "Egg genome" 20 50))
    (game-modify-buttons
     (list
-     (let ((i (find-image "button.png")))
-       (image-button
-        "Back"
-        1150 850
-        #f i
-        (lambda (c)
-          (nightjar-best c)))))
+     (image-button
+      "Back" 1150 850 #f (find-image "button.png")
+      (lambda (c)
+        (nightjar-best c))))
     c)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; startup
 
 (set! ctx.font "normal 50pt 'Press Start 2P'")
 
@@ -545,7 +679,10 @@
   (list
    "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg"
    "button.png"
-   "egg.png")
+   "egg.png"
+   "cf.png"
+   "cp.png"
+   "mv.png")
   egg-images)
  (lambda ()
    (start-game canvas ctx)))

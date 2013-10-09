@@ -205,7 +205,9 @@
 
 (define (image-button name x y jitter drawable callback)
   (list "image-button"
-        name x y
+        name
+        (- x (/ drawable.width 2))
+        (- y (/ drawable.height 2))
         drawable.width
         drawable.height
         jitter callback drawable
@@ -240,6 +242,69 @@
 (define (in-circle? x y r xx yy)
   (< (dist-2d xx yy x y) r))
 
+(define (button-do-jittering b)
+  (when (eq? (button-jitter b) "rotate")
+        (ctx.translate (/ (button-w b) 2)
+                       (/ (button-h b) 2))
+        (ctx.rotate (* 0.2 (- (rndf) 0.5)))
+        (ctx.scale (+ 1 (* 0.2 (- (rndf) 0.5)))
+                   (+ 1 (* 0.2 (- (rndf) 0.5))))
+        (ctx.translate (- 0 (/ (button-w b) 2))
+                       (- 0 (/ (button-h b) 2)))))
+
+
+(define (button-text-jumpy-render! b t)
+  (let ((m (ctx.measureText (button-name b)))
+        (cm (ctx.measureText "w"))
+        (txt (button-name b)))
+    (let ((ta (txt.split ""))
+          (x (- (/ (button-w b) 2) (/ m.width 2)))
+          (y (+ (/ (button-h b) 2) 5)))
+      (index-for-each
+       (lambda (i c)
+         (ctx.fillText c (+ x (* i cm.width))
+                       (+ y (* 3 (sin (+ (* t 0.01) i))))))
+       ta))))
+
+(define (to-hex c)
+  (let ((c (Math.floor (Math.abs c))))
+    (let ((hex (c.toString 16)))
+      (if (eq? hex.length 1)
+          (+ "0" hex)
+          hex))))
+
+(define (rgb-to-hex r g b)
+  (+ "#" (to-hex r) (to-hex g) (to-hex b)))
+
+(define (button-text-flashy-render! b t)
+  (let ((m (ctx.measureText (button-name b)))
+        (cm (ctx.measureText "w"))
+        (txt (button-name b)))
+    (let ((ta (txt.split ""))
+          (x (- (/ (button-w b) 2) (/ m.width 2)))
+          (y (+ (/ (button-h b) 2) 5)))
+      (index-for-each
+       (lambda (i c)
+         (set! ctx.fillStyle (rgb-to-hex
+                              (* 256 (sin (+ (* t 0.001) i)))
+                              (* 256 (sin (+ (* t 0.003) i)))
+                              (* 256 (sin (+ (* t 0.004) i)))))
+
+         (ctx.fillText c (+ x (* i cm.width)) y))
+       ta))))
+
+(define (button-text-render! b t)
+  (cond
+   ((eq? (button-jitter b) "jumpy") (button-text-jumpy-render! b t))
+   ((eq? (button-jitter b) "flashy") (button-text-flashy-render! b t))
+   (else
+    (let ((m (ctx.measureText (button-name b))))
+      (ctx.fillText
+       (button-name b)
+       (- (/ (button-w b) 2) (/ m.width 2))
+       (+ (/ (button-h b) 2) 5))))))
+
+
 (define (rect-button-update! b mx my c)
   (if (in-rect? (button-x b) (button-y b)
                 (button-w b) (button-h b)
@@ -268,15 +333,7 @@
   (when #f
         (ctx.save)
         (ctx.translate (button-x b) (button-y b))
-        (when (button-jitter b)
-              (ctx.translate (/ (button-w b) 2)
-                             (/ (button-h b) 2))
-              (ctx.rotate (* 0.2 (- (rndf) 0.5)))
-              (ctx.scale (+ 1 (* 0.2 (- (rndf) 0.5)))
-                         (+ 1 (* 0.2 (- (rndf) 0.5))))
-              (ctx.translate (- 0 (/ (button-w b) 2))
-                       (- 0 (/ (button-h b) 2))))
-
+        (button-do-jittering b)
         (set! ctx.strokeStyle "#fff")
         (ctx.strokeRect
          0 0 (button-w b) (button-h b))
@@ -287,28 +344,13 @@
 (define (image-button-render! ctx t b)
   (ctx.save)
   (ctx.translate (button-x b) (button-y b))
-  (when (button-jitter b)
-        (ctx.translate (/ (button-w b) 2)
-                       (/ (button-h b) 2))
-        (ctx.rotate (* 0.05 (Math.sin (+ (* (button-offs b) 10) (* t 0.01)))))
-        ;;(ctx.scale (+ 1 (* 0.2 (- (rndf) 0.5)))
-        ;;           (+ 1 (* 0.2 (- (rndf) 0.5))))
-        (ctx.translate (- 0 (/ (button-w b) 2))
-                       (- 0 (/ (button-h b) 2))))
-
+  (button-do-jittering b)
   (ctx.drawImage
    (button-drawable b)
    0 0)
-
   (set! ctx.fillStyle "#fff")
-
-  (let ((m (ctx.measureText (button-name b))))
-    (ctx.fillText
-     (button-name b)
-     (- (/ (button-w b) 2) (/ m.width 2))
-     (+ (/ (button-h b) 2) 5)))
+  (button-text-render! b t)
   (ctx.restore))
-
 
 (define (circle-button-render! ctx t b)
   (ctx.beginPath)
