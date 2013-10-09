@@ -194,6 +194,20 @@ zc.comp_lambda = function(args) {
         "return "+zc.comp(last)+"\n}\n";
 };
 
+// ( ... return end )
+// not used... yet
+zc.comp_begin = function(args) {
+    var expr=args;
+    var nexpr=expr.length;
+    var last=expr[nexpr-1];
+    var eexpr=zc.sublist(expr,0,nexpr-1);
+
+    return "function ()\n"+
+        // adding semicolon here
+        "{"+zc.list_map(zc.comp,eexpr).join(";\n")+"\n"+
+        "return "+zc.comp(last)+"\n}\n";
+}
+
 zc.comp_let = function(args) {
     var fargs = zc.car(args);
     largs = [];
@@ -202,18 +216,22 @@ zc.comp_let = function(args) {
         zc.list_map(function(a) { return zc.comp(a[1]); },fargs)+" ))\n";
 };
 
-// half fixed to remove return versions and use more closures!
+// ( ((pred) body ...)
+//   ((pred) body ...)
+//   (else body ... ))
+
 zc.comp_cond = function(args) {
     if (zc.car(zc.car(args))==="else") {
         return "(function () { return "+zc.comp(zc.cdr(zc.car(args)))+"})()";
     } else {
         return "(function () { if ("+zc.comp(zc.car(zc.car(args)))+") {\n"+
-            "return "+zc.comp(zc.cadr(zc.car(args)))+"\n} else {\n"+
+            // todo: decide if lambda, let or begin is single way to do this...
+            "return "+zc.comp_let([[]].concat(zc.cdr(zc.car(args))))+
+            "\n} else {\n"+
             "return "+zc.comp_cond(zc.cdr(args))+"\n}})()";
     }
 };
 
-// half fixed to remove return versions and use more closures!
 zc.comp_if = function(args) {
     return "(function () { if ("+zc.comp(zc.car(args))+") {\n"+
         "return "+zc.comp(zc.cadr(args))+"} else {"+

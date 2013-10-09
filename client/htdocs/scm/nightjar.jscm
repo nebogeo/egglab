@@ -163,19 +163,16 @@
      ((null? words)
       (centre-text ctx line y))
      (else
-      (begin
-        (define test-line (+ line (car words) " "))
-        (define metrics (ctx.measureText test-line))
-        (if (> metrics.width max-width)
-            ;; todo cond returning too early...
-            (begin
-              (centre-text ctx line y)
-              (wrap-text-inner (cdr words)
-                               (+ (car words) " ")
-                               (+ y line-height)))
-            (begin
-              (wrap-text-inner
-               (cdr words) test-line y)))))))
+      (let ((test-line (+ line (car words) " ")))
+        (let ((metrics (ctx.measureText test-line)))
+          (cond ((> metrics.width max-width)
+                 (centre-text ctx line y)
+                 (wrap-text-inner (cdr words)
+                                  (+ (car words) " ")
+                                  (+ y line-height)))
+                (else
+                 (wrap-text-inner
+                  (cdr words) test-line y))))))))
   (wrap-text-inner (text.split " ") "" y))
 
 (define (sprite x y image timer)

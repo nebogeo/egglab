@@ -288,15 +288,16 @@
 (define (nightjar-intro c)
   (game-modify-render
    (lambda (ctx)
+     (ctx.drawImage (find-image "eggs.jpg") 0 0)
      (set! ctx.font "normal 70pt 'Press Start 2P'")
      (wrap-text ctx "EGGLAB" 0 200 1000 1000)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (wrap-text ctx "Evolve eggs for science!" 0 250 1000 1000)
+     (wrap-text ctx "Evolve egg patterns for science!" 0 250 1000 50)
      (set! ctx.font "normal 20pt 'Press Start 2P'"))
    (game-modify-buttons
     (list
      (image-button
-      "Click the egg to continue!"
+      "Click to continue!"
       (/ screen-width 2) 700
       "flashy" (find-image "button.png")
       (lambda (c)
@@ -355,6 +356,25 @@
 
 
     c)))
+
+(define (nightjar-about c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (wrap-text ctx "About" 0 50 1000 1000)
+     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (wrap-text ctx "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum." 0 100 1000 40))
+
+   (game-modify-buttons
+    (list
+
+    (image-button
+     "Back" (+ (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
+     (lambda (c) (nightjar-choose-location c))))
+
+
+    c)))
+
 
 (define (nightjar-env c)
   (game-modify-update
@@ -682,7 +702,8 @@
    "egg.png"
    "cf.png"
    "cp.png"
-   "mv.png")
+   "mv.png"
+   "eggs.jpg")
   egg-images)
  (lambda ()
    (start-game canvas ctx)))
