@@ -47,8 +47,8 @@
       (pluto-response (scheme->txt '("hello")))))
 
    (register
-    (req 'sample '(image count thresh))
-    (lambda (image count thresh)
+    (req 'sample '(land count thresh))
+    (lambda (land count thresh)
       (pluto-response
        (string-append
         (scheme->txt
@@ -56,12 +56,12 @@
           "(list "
           (apply
            string-append
-           (pop-sample db image (string->number count) (string->number thresh)))
+           (pop-sample db land (string->number count) (string->number thresh)))
           ")"))))))
 
    (register
-    (req 'stats '(image count))
-    (lambda (image count)
+    (req 'stats '(land count))
+    (lambda (land count)
       (pluto-response
        (string-append
         (scheme->txt
@@ -69,16 +69,16 @@
           "(list "
           (apply
            string-append
-           (pop-stats db image (string->number count)))
+           (pop-stats db land (string->number count)))
           ")"))))))
 
 
    (register
-    (req 'add '(image game genotype fitness))
-    (lambda (image game genotype fitness)
+    (req 'add '(image land game genotype fitness))
+    (lambda (image land game genotype fitness)
       (pluto-response
        (scheme->txt
-        (pop-add db image game genotype (string->number fitness))))))
+        (pop-add db image land game genotype (string->number fitness))))))
    ))
 
 (define (start request)

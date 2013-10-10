@@ -182,6 +182,8 @@ zc.check = function(fn,args,min,max) {
     return true;
 };
 
+// ( (arg1 arg2 ...) body ...)
+
 zc.comp_lambda = function(args) {
     var expr=zc.cdr(args);
     var nexpr=expr.length;
@@ -194,7 +196,7 @@ zc.comp_lambda = function(args) {
         "return "+zc.comp(last)+"\n}\n";
 };
 
-// ( ... return end )
+// ( body ... )
 // not used... yet
 zc.comp_begin = function(args) {
     var expr=args;
@@ -208,6 +210,7 @@ zc.comp_begin = function(args) {
         "return "+zc.comp(last)+"\n}\n";
 }
 
+// ( ((arg1 exp1) (arg2 expr2) ...) body ...)
 zc.comp_let = function(args) {
     var fargs = zc.car(args);
     largs = [];
@@ -225,7 +228,7 @@ zc.comp_cond = function(args) {
         return "(function () { return "+zc.comp(zc.cdr(zc.car(args)))+"})()";
     } else {
         return "(function () { if ("+zc.comp(zc.car(zc.car(args)))+") {\n"+
-            // todo: decide if lambda, let or begin is single way to do this...
+            // todo: decide if lambda, let or begin is canonical way to do this...
             "return "+zc.comp_let([[]].concat(zc.cdr(zc.car(args))))+
             "\n} else {\n"+
             "return "+zc.comp_cond(zc.cdr(args))+"\n}})()";

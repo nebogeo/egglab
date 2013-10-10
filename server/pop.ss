@@ -17,16 +17,26 @@
 (require "eavdb.ss" "utils.ss")
 (provide (all-defined-out))
 
-(define (pop-add db image game genotype fitness)
+(define pop-size 255)
+
+(define (pop-add db image land game genotype fitness)
   (insert-entity db "pop" "egg" "gaia"
                  (list
+                  (ktv "time" "real" (current-inexact-milliseconds))
                   (ktv "image" "varchar" image)
+                  (ktv "land" "varchar" land)
                   (ktv "game" "varchar" game)
                   (ktv "genotype" "varchar" genotype)
                   (ktv "fitness" "real" fitness)))
-  ;;(pop-cull db table 256)
-  '("ok"))
+  (if (< (random 100) 5)
+      (pop-oldest-cull db land pop-size)
+      (pop-cull db land pop-size))
 
+  (msg (select-first
+        db (string-append
+            "select avg(value) from pop_value_real where attribute_id = 'fitness' ")))
+
+  '("ok"))
 
 (define (fitness-thresh db perc)
   (let* ((s (cadr
@@ -40,14 +50,15 @@
         (+ min (* t (- max min))))))
 
 ;; random selection of count entities
-(define (pop-sample db image count thresh)
+(define (pop-sample db land count thresh)
   (let ((s (db-select
             db (string-append
                 "select g.value from pop_entity as e "
                 "join pop_value_varchar as g on (g.entity_id = e.entity_id) and (g.attribute_id = 'genotype') "
-                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.value > ?) "
-                "where entity_type = ? order by random() limit ?")
-            (inexact->exact (round (fitness-thresh db thresh))) "egg" count)))
+                "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
+                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'fitness') and (v.value > ?) "
+                "where entity_type = ? and l.value = ? order by random() limit ?")
+            (inexact->exact (round (fitness-thresh db thresh))) "egg" land count)))
     (if (null? s)
         '()
         (map
@@ -55,15 +66,17 @@
            (vector-ref i 0))
          (cdr s)))))
 
-;; random selection of count entities
-(define (pop-stats db image count)
+;; top n eggs
+(define (pop-stats db land count)
+  (msg land count)
   (let ((s (db-select
             db (string-append
                 "select g.value from pop_entity as e "
                 "join pop_value_varchar as g on (g.entity_id = e.entity_id) and (g.attribute_id = 'genotype') "
-                "join pop_value_real as v on (v.entity_id = e.entity_id) "
-                "where entity_type = ? order by v.value desc limit ?")
-            "egg" count)))
+                "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
+                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'fitness') "
+                "where entity_type = ? and l.value = ? order by v.value desc limit ?")
+            "egg" land count)))
     (if (null? s)
         '()
         (map
@@ -71,10 +84,49 @@
            (vector-ref i 0))
          (cdr s)))))
 
+(define (cull db l size)
+  (cond
+   ((< (length l) size) l)
+   (else
+    (msg "deleting " (car l))
+    (delete-entity db "pop" (car (car l)))
+    (cull db (cdr l) size))))
 
-;(define (pop-cull db table size)
-;  (let ((s (db-select
-;            db (string-append
-;                "select entity_id from " table
-;                "_entity where entity_type = ? order by  limit ?")
-;            type count)))
+;; remove lowest not in this size population
+(define (pop-cull db land size)
+  (let ((s (db-select
+            db (string-append
+                "select e.entity_id, v.value from pop_entity as e "
+                "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
+                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'fitness') "
+                "where entity_type = ? and l.value = ? and v.value is not null order by v.value")
+            "egg" land)))
+    (when (not (null? s))
+          (cull
+           db
+           (map
+            (lambda (id)
+              (list (vector-ref id 0)
+                    (vector-ref id 1)))
+            (cdr s))
+           size))))
+
+;; remove lowest not in this size population
+(define (pop-oldest-cull db land size)
+  (let ((s (db-select
+            db (string-append
+                "select e.entity_id, v.value from pop_entity as e "
+                "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
+                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'time') "
+                "where entity_type = ? and l.value = ? and v.value is not null order by v.value")
+            "egg" land)))
+    (when (not (null? s))
+          (cull
+           db
+           (map
+            (lambda (id)
+              (list
+               (vector-ref id 0)
+               (string-append "time: " (number->string (vector-ref id 1)))))
+            (cdr s))
+           size))))

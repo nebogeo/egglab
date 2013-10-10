@@ -23,9 +23,9 @@
 ;(define db-select db-exec)
 
 ;; racket
-(define db-exec exec/ignore)
-(define db-select select)
-(define db-insert insert)
+(define (db-exec db sql . args) (apply exec/ignore (append (list db sql) args)))
+(define (db-select db sql . args) (apply select (append (list db sql) args)))
+(define (db-insert db sql . args) (apply insert (append (list db sql) args)))
 (define (db-status a) "")
 (define (time) (list (random) (random))) ; ahem
 
@@ -107,6 +107,7 @@
 
 ;; low level insert of a ktv
 (define (insert-value db table entity-id ktv)
+  (msg "insert-value for" entity-id)
   ;; use type to dispatch insert to correct value table
   (db-insert db (string-append "insert into " table "_value_" (ktv-type ktv)
                                " values (null, ?, ?, ?, 0)")
@@ -123,20 +124,32 @@
 
 ;; all the parameters - for syncing purposes
 (define (insert-entity-wholesale db table entity-type unique-id dirty version ktvlist)
-  (let ((id (db-insert
-             db (string-append
-                 "insert into " table "_entity values (null, ?, ?, ?, ?)")
-             entity-type unique-id dirty version)))
+  ;; id from insert **not to be trusted**
+
+  (db-insert
+   db (string-append
+       "insert into " table "_entity values (null, ?, ?, ?, ?)")
+   entity-type unique-id dirty version)
+
+  (let ((id (get-entity-id db table unique-id)))
+
+    (db-exec db "begin transaction")
+
+    (msg "insert-entity for" id)
+
     ;; create the attributes if they are new, and validate them if they exist
     (for-each
      (lambda (ktv)
        (find/add-attribute-type db table entity-type (ktv-key ktv) (ktv-type ktv)))
      ktvlist)
+
     ;; add all the keys
     (for-each
      (lambda (ktv)
        (insert-value db table id ktv))
      ktvlist)
+
+    (db-exec db "end transaction")
     id))
 
 ;; update the value given an entity type, a attribute type and it's key (= attriute_id)
@@ -147,6 +160,11 @@
    (ktv-value ktv) entity-id (ktv-key ktv))
   (msg (db-status db)))
 
+(define (delete-entity db table entity-id)
+  (db-exec db (string-append "delete from " table "_value_varchar where entity_id = ?") entity-id)
+  (db-exec db (string-append "delete from " table "_value_int where entity_id = ?") entity-id)
+  (db-exec db (string-append "delete from " table "_value_real where entity_id = ?") entity-id)
+  (db-exec db (string-append "delete from " table "_entity where entity_id = ?") entity-id))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; getting data out
@@ -194,9 +212,10 @@
 ;; get an entire entity, as a list of key/value pairs (includes entity id)
 (define (get-entity db table entity-id)
   (let ((unique-id (get-unique-id db table entity-id)))
-    (cons
-     (list "unique_id" "varchar" unique-id)
-     (get-entity-plain db table entity-id))))
+    (if (null? unique-id) '()
+        (cons
+         (list "unique_id" "varchar" unique-id)
+         (get-entity-plain db table entity-id)))))
 
 (define (all-entities db table type)
   (let ((s (db-select
@@ -413,119 +432,127 @@
 
 (define (unit-tests)
   ;; db
-(msg "testing db")
-(define db "unit-test.db")
-(define table "eavunittest")
-(set! db (db-open db (list table)))
+  (msg "testing db")
+  (define db "unit-test.db")
+  (define table "eavunittest")
+  (set! db (db-open db (list table)))
 
-(define (feq a b)
-  (< (abs (- a b)) 0.001))
+  (define (feq a b)
+    (< (abs (- a b)) 0.001))
 
-;;(msg (db-status db))
+  ;;(msg (db-status db))
 
-;; test low level sql
-(db-exec db "create table unittest ( id integer primary key autoincrement, name varchar(256), num int, r real )")
+  ;; test low level sql
+  (db-exec db "create table unittest ( id integer primary key autoincrement, name varchar(256), num int, r real )")
 
-(define id (db-insert db "insert into unittest values (null, ?, ?, ?)" "hello" 23 1.1))
-(asserteq "sql autoinc" (+ id 1) (db-insert db "insert into unittest values (null, ?, ?, ?)" "hello2" 26 2.3))
+  (define id (db-insert db "insert into unittest values (null, ?, ?, ?)" "hello" 23 1.1))
+  (asserteq "sql autoinc" (+ id 1) (db-insert db "insert into unittest values (null, ?, ?, ?)" "hello2" 26 2.3))
 
-(let ((q (db-select db "select * from unittest")))
-  (assert "sql length" (> (length q) 2)))
+  (let ((q (db-select db "select * from unittest")))
+    (assert "sql length" (> (length q) 2)))
 
-(let ((q (db-select db "select * from unittest where id = ?" id)))
-  (asserteq "sql select one" (length q) 2)
-  (assert "sql select two" (vector? (car q)))
-  (asserteq "sql select 3" (vector-ref (cadr q) 2) 23)
-  (assert "sql select 4" (feq (vector-ref (cadr q) 3) 1.1)))
+  (let ((q (db-select db "select * from unittest where id = ?" id)))
+    (asserteq "sql select one" (length q) 2)
+    (assert "sql select two" (vector? (car q)))
+    (asserteq "sql select 3" (vector-ref (cadr q) 2) 23)
+    (assert "sql select 4" (feq (vector-ref (cadr q) 3) 1.1)))
 
-(db-exec db "update unittest set name=? where id = ?" "bob" id)
+  (db-exec db "update unittest set name=? where id = ?" "bob" id)
 
-(let ((q (db-select db "select * from unittest where id = ?" id)))
-  (asserteq "sql update" (vector-ref (cadr q) 1) "bob"))
+  (let ((q (db-select db "select * from unittest where id = ?" id)))
+    (asserteq "sql update" (vector-ref (cadr q) 1) "bob"))
 
-(db-exec db "update unittest set name=? where id = ?" "Robert'); DROP TABLE unittest;--" id)
+  (db-exec db "update unittest set name=? where id = ?" "Robert'); DROP TABLE unittest;--" id)
 
-(let ((q (db-select db "select * from unittest where id = ?" id)))
-  (asserteq "bobby tables sql injection" (vector-ref (cadr q) 1) "Robert'); DROP TABLE unittest;--"))
+  (let ((q (db-select db "select * from unittest where id = ?" id)))
+    (asserteq "bobby tables sql injection" (vector-ref (cadr q) 1) "Robert'); DROP TABLE unittest;--"))
 
-;; test the entity attribute value system
+  ;; test the entity attribute value system
 
-(asserteq "ktv one" (stringify-value (ktv "one" "varchar" "two")) "'two'")
-(asserteq "ktv 2" (stringify-value (ktv "one" "int" 3)) "3")
-(asserteq "ktv 3" (stringify-value-url (ktv "one" "varchar" "two")) "two")
-(asserteq "ktv 4" (stringify-value-url (ktv "one" "int" 3)) "3")
+  (asserteq "ktv one" (stringify-value (ktv "one" "varchar" "two")) "'two'")
+  (asserteq "ktv 2" (stringify-value (ktv "one" "int" 3)) "3")
+  (asserteq "ktv 3" (stringify-value-url (ktv "one" "varchar" "two")) "two")
+  (asserteq "ktv 4" (stringify-value-url (ktv "one" "int" 3)) "3")
 
-(asserteq "select first" (select-first db "select name from unittest where id = ?" (+ id 1))
-          "hello2")
+  (asserteq "select first" (select-first db "select name from unittest where id = ?" (+ id 1))
+            "hello2")
 
-(define e (insert-entity db table "thing" "me" (list (ktv "param1" "varchar" "bob")
-                                                     (ktv "param2" "int" 30)
-                                                     (ktv "param3" "real" 3.141))))
+  (define e (insert-entity db table "thing" "me" (list (ktv "param1" "varchar" "bob")
+                                                       (ktv "param2" "int" 30)
+                                                       (ktv "param3" "real" 3.141))))
 
-(asserteq "eav ent type" (get-entity-type db table e) "thing")
+  (asserteq "eav ent type" (get-entity-type db table e) "thing")
 
-(let ((e (get-entity db table e)))
-  (asserteq "entity get 1" (ktv-get e "param1") "bob")
-  (asserteq "entity get 2" (ktv-get e "param2") 30)
-  (assert "entity get 3" (feq (ktv-get e "param3") 3.141)))
+  (let ((e (get-entity db table e)))
+    (asserteq "entity get 1" (ktv-get e "param1") "bob")
+    (asserteq "entity get 2" (ktv-get e "param2") 30)
+    (assert "entity get 3" (feq (ktv-get e "param3") 3.141)))
 
-(update-value db table e (ktv "param1" "varchar" "fred"))
+  (define er (insert-entity db table "thing" "me"
+                            (list (ktv "param1" "varchar" "pete")
+                                  (ktv "param2" "int" 30)
+                                  (ktv "param3" "real" 3.141))))
 
-(let ((e (get-entity db table e)))
-  (asserteq "update value 1" (ktv-get e "param1") "fred")
-  (asserteq "update value 2" (ktv-get e "param2") 30))
+  (assert "insert entity to be removed" (get-entity db table er))
+  (delete-entity db table er)
+  (assert "delete entity" (null? (get-entity db table er)))
+  (update-value db table e (ktv "param1" "varchar" "fred"))
 
-(assert "all-entities" (> (length (all-entities db table "thing")) 0))
+  (let ((e (get-entity db table e)))
+    (asserteq "update value 1" (ktv-get e "param1") "fred")
+    (asserteq "update value 2" (ktv-get e "param2") 30))
 
-(update-entity db table e (list (ktv "param1" "varchar" "wotzit")
-                                (ktv "param2" "int" 1)))
+  (assert "all-entities" (> (length (all-entities db table "thing")) 0))
 
-(let ((e (get-entity db table e)))
-  (asserteq "update-entity 1" (ktv-get e "param1") "wotzit")
-  (asserteq "update-entity 2" (ktv-get e "param2") 1))
+  (update-entity db table e (list (ktv "param1" "varchar" "wotzit")
+                                  (ktv "param2" "int" 1)))
 
-(update-entity db table e (list (ktv "param3" "real" 3.3)))
+  (let ((e (get-entity db table e)))
+    (asserteq "update-entity 1" (ktv-get e "param1") "wotzit")
+    (asserteq "update-entity 2" (ktv-get e "param2") 1))
 
-(let ((e (get-entity db table e)))
-  (msg e)
-  (asserteq "update-entity 3" (ktv-get e "param1") "wotzit")
-  (asserteq "update-entity 4" (ktv-get e "param2") 1)
-  (assert "update-entity 5" (feq (ktv-get e "param3") 3.3)))
+  (update-entity db table e (list (ktv "param3" "real" 3.3)))
 
-(define e2 (insert-entity db table "thing" "me"
-                          (list (ktv "param1" "varchar" "bob")
-                                (ktv "param2" "int" 30)
-                                (ktv "param3" "real" 3.141)
-                                (ktv "param4" "int" 0))))
+  (let ((e (get-entity db table e)))
+    (msg e)
+    (asserteq "update-entity 3" (ktv-get e "param1") "wotzit")
+    (asserteq "update-entity 4" (ktv-get e "param2") 1)
+    (assert "update-entity 5" (feq (ktv-get e "param3") 3.3)))
 
-(let ((e (get-entity db table e2)))
-  (msg e)
-  (asserteq "new entity 1" (ktv-get e "param1") "bob")
-  (asserteq "new entity 2" (ktv-get e "param2") 30)
-  (assert "new entity 3" (feq (ktv-get e "param3") 3.141))
-  (asserteq "new entity 3" (ktv-get e "param4") 0))
+  (define e2 (insert-entity db table "thing" "me"
+                            (list (ktv "param1" "varchar" "bob")
+                                  (ktv "param2" "int" 30)
+                                  (ktv "param3" "real" 3.141)
+                                  (ktv "param4" "int" 0))))
 
-;; test the versioning
-(asserteq "dirty flag" (get-entity-dirty db table e) 1)
-(asserteq "dirty flag2" (get-entity-dirty db table e2) 1)
-(let ((uid (get-unique-id db table e2)))
-  (update-entity-clean db table uid))
-(asserteq "dirty flag post clean" (get-entity-dirty db table e2) 0)
-(asserteq "versioning" (get-entity-version db table e) 2)
-(asserteq "dirty flag3" (get-entity-dirty db table e) 1)
-(assert "dirty" (> (length (dbg (dirty-entities db table))) 0))
+  (let ((e (get-entity db table e2)))
+    (msg e)
+    (asserteq "new entity 1" (ktv-get e "param1") "bob")
+    (asserteq "new entity 2" (ktv-get e "param2") 30)
+    (assert "new entity 3" (feq (ktv-get e "param3") 3.141))
+    (asserteq "new entity 3" (ktv-get e "param4") 0))
 
-(for-each
- (lambda (e)
-   (update-entity-clean
-    db table
-    (list-ref (car e) 1)))
- (dirty-entities db table))
+  ;; test the versioning
+  (asserteq "dirty flag" (get-entity-dirty db table e) 1)
+  (asserteq "dirty flag2" (get-entity-dirty db table e2) 1)
+  (let ((uid (get-unique-id db table e2)))
+    (update-entity-clean db table uid))
+  (asserteq "dirty flag post clean" (get-entity-dirty db table e2) 0)
+  (asserteq "versioning" (get-entity-version db table e) 2)
+  (asserteq "dirty flag3" (get-entity-dirty db table e) 1)
+  (assert "dirty" (> (length (dbg (dirty-entities db table))) 0))
 
-(asserteq "cleaning" (length (dirty-entities db table)) 0)
+  (for-each
+   (lambda (e)
+     (update-entity-clean
+      db table
+      (list-ref (car e) 1)))
+   (dirty-entities db table))
+
+  (asserteq "cleaning" (length (dirty-entities db table)) 0)
 
 
-(msg (db-status db))
-)
+  (msg (db-status db))
+  )
 
 ;(unit-tests)

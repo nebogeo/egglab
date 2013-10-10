@@ -17,6 +17,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; gp
 
+
+
 (define egg-images
   (build-list 24 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
 
@@ -121,7 +123,7 @@
     (append
      (map
       (lambda (sample)
-        (let ((program (egg-mutate sample 0.001)))
+        (let ((program (egg-mutate sample 0.01)))
           (make-individual
            0 (egg-drawable program)
            program
@@ -247,23 +249,26 @@
             (ctx.scale sc sc)
             (draw-op ctx program)
             (set! ctx.fillStyle "#000")
-            (set! ctx.font "normal 20pt 'Press Start 2P'")
+            (set! ctx.font "normal 15pt 'Press Start 2P'")
             (fill-centre-text ctx (operator-type program) 64
                               (if (eq? d 0) 200 180))
             (ctx.restore))))))
 
 (define (draw-egg-genome ctx egg centrex centrey)
   (ctx.beginPath)
-  (ctx.arc centrex centrey 600 0 (* 2 Math.PI) #f)
+  (ctx.arc centrex centrey 500 0 (* 2 Math.PI) #f)
   (set! ctx.fillStyle "#278")
   (ctx.fill)
-  (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 80)
+  (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 65)
   (set! ctx.fillStyle "#fff"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (egglab-data time eggs offset land images replicate username)
   (list time eggs offset land images username))
+
+(define (egglab-data-init land)
+  (list 0 () (list 0 0) land () "???" (list 0 0)))
 
 (define (egglab-data-start-game d time eggs offset)
   (list time eggs offset (list-ref d 3) (list-ref d 4) (list-ref d 5)))
@@ -293,7 +298,7 @@
      (wrap-text ctx "EGGLAB" 0 200 1000 1000)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
      (wrap-text ctx "Evolve egg patterns for science!" 0 250 1000 50)
-     (set! ctx.font "normal 20pt 'Press Start 2P'"))
+     (set! ctx.font "normal 15pt 'Press Start 2P'"))
    (game-modify-buttons
     (list
      (image-button
@@ -305,54 +310,72 @@
         (nightjar-choose-location c))))
     c)))
 
+(define (async-load-images c path l)
+  (for-each
+   (lambda (i)
+     (let ((fullpath (string-append "/bg/" path "/" i)))
+       (load-image-mutate
+        (lambda (c)
+          (game-modify-data
+           (lambda (d)
+             (msg fullpath)
+             (egglab-data-modify-images
+              d (shuffle (cons fullpath (egglab-data-images d)))))
+           c))
+        fullpath)))
+   l))
+
 (define (nightjar-choose-location c)
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
      (wrap-text ctx "Choose your location" 0 50 1000 1000)
-     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (set! ctx.font "normal 15pt 'Press Start 2P'")
      (wrap-text ctx "Land of the ..." 0 100 1000 1000))
 
    (game-modify-buttons
     (list
 
-     (image-button
-      "Mozambique Nightjar" (/ screen-width 2) 450
-      "jumpy" (find-image "cf.png")
-      (lambda (c)
-        (nightjar-env
-         (game-modify-data
-          (lambda (d)
-            (egglab-data 0 () (list 0 0) "CF" (random 10) "???"))
-          c))))
-
     (image-button
-     "Fiery-necked Nightjar" (+ (/ screen-width 2) 300) 750
-     "jumpy" (find-image "cp.png")
-     (lambda (c)
-       (nightjar-env
-        (game-modify-data
-         (lambda (d)
-           (egglab-data 0 () (list 0 0) "CP" (random 10) "???"))
-          c))))
-
-    (image-button
-     "Pennant-winged Nightjar"  (- (/ screen-width 2) 300) 800
-     "jumpy" (find-image "mv.png")
-     (lambda (c)
-       (nightjar-env
-        (game-modify-data
-         (lambda (d)
-           (egglab-data 0 () (list 0 0) "MV" (random 10) "???"))
-         c))))
-
-    (image-button
-     "About" (- (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
+     "About" 1000 720 "jumpy" (find-image "button.png")
      (lambda (c) (nightjar-about c)))
 
     (image-button
-     "Back" (+ (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
-     (lambda (c) (nightjar-intro c))))
+     "Back" 1150 720 "jumpy" (find-image "button.png")
+     (lambda (c) (nightjar-intro c)))
+
+
+    (image-button
+     "Fiery-necked" (+ (/ screen-width 2) 200) 650
+     "jumpy" (find-image "cp.png")
+     (lambda (c)
+       (async-load-images c "CP" cp_images)
+       (nightjar-env
+        (game-modify-data
+         (lambda (d) (egglab-data-init "CP"))
+          c))))
+
+    (image-button
+     "Pennant-winged"  (- (/ screen-width 2) 400) 650
+     "jumpy" (find-image "mv.png")
+     (lambda (c)
+       (async-load-images c "MV" mv_images)
+       (nightjar-env
+        (game-modify-data
+         (lambda (d) (egglab-data-init "MV"))
+         c))))
+
+    (image-button
+      "Mozambique" (- (/ screen-width 2) 100) 450
+      "jumpy" (find-image "cf.png")
+      (lambda (c)
+        (async-load-images c "CF" cf_images)
+        (nightjar-env
+         (game-modify-data
+          (lambda (d) (egglab-data-init "CF"))
+          c)))))
+
+
 
 
     c)))
@@ -362,14 +385,14 @@
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
      (wrap-text ctx "About" 0 50 1000 1000)
-     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (set! ctx.font "normal 15pt 'Press Start 2P'")
      (wrap-text ctx "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum." 0 100 1000 40))
 
    (game-modify-buttons
     (list
 
     (image-button
-     "Back" (+ (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
+     "Back" 1150 720 "jumpy" (find-image "button.png")
      (lambda (c) (nightjar-choose-location c))))
 
 
@@ -381,7 +404,7 @@
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
-      (set! ctx.font "normal 20pt 'Press Start 2P'")
+      (set! ctx.font "normal 30pt 'Press Start 2P'")
       (wrap-text
        ctx (string-append "Land of the "
                           (cond
@@ -392,70 +415,60 @@
                            ((eq? (egglab-data-land (game-data c)) "MV")
                             "Pennant-winged Nightjar")
                            (else "oops")))
-       0 200 1000 1000)
-      (set! ctx.font "normal 20pt 'Press Start 2P'"))
+       0 100 1000 60)
+      (set! ctx.font "normal 15pt 'Press Start 2P'")
+      (wrap-text
+       ctx "All you need to do is click on the eggs as soon as you see them. We use timing information to guide the artificial evolution of the eggs."
+       0 200 1000 30))
+
     (game-modify-buttons
      (list
       (image-button
-       "Flicker game" (/ screen-width 2) 400 "jumpy" (find-image "button.png")
+       "Play the game" (- (/ screen-width 2) 300) 400 "jumpy" (find-image "button.png")
        (lambda (c)
-         (server-call-mutate
-          "sample"
-          (list (list "image" "img")
-                (list "count" 18)
-                (list "thresh" 95))
-          (lambda (c data)
-            (nightjar-research
-             "flicker"
-             (game-modify-data
-              (lambda (d)
-                (egglab-data
-                 (game-time c)
-                 (make-population "flicker" (eval-string data))
-                 (list (random 3000) (random 300))))
-              c))))
-         c))
+         (nightjar-research "flicker" c)))
+
+;      (image-button
+;       "Scroll game" (/ screen-width 2) 400 "jumpy" (find-image "button.png")
+;       (lambda (c)
+;         (server-call-mutate
+;          "sample"
+;          (list (list "image" "img")
+;                (list "count" 18)
+;                (list "thresh" 95))
+;          (lambda (c data)
+;            (nightjar-research
+;             "scroll"
+;             (game-modify-data
+;              (lambda (d)
+;                (egglab-data-start-game
+;                  d (game-time c)
+;                  (make-population "scroll" (eval-string data))
+;                 (list 0 0)))
+;              c))))
+;         c))
 
       (image-button
-       "Scroll game" (/ screen-width 2) 600 "jumpy" (find-image "button.png")
-       (lambda (c)
-         (server-call-mutate
-          "sample"
-          (list (list "image" "img")
-                (list "count" 18)
-                (list "thresh" 95))
-          (lambda (c data)
-            (nightjar-research
-             "scroll"
-             (game-modify-data
-              (lambda (d)
-                (egglab-data
-                 (game-time c)
-                 (make-population "scroll" (eval-string data))
-                 (list 0 0)))
-              c))))
-         c))
-
-      (image-button
-       "Best eggs" (/ screen-width 2) 800 "jumpy" (find-image "button.png")
+       "See the best eggs" (+ (/ screen-width 2) 300) 400 "jumpy" (find-image "button.png")
        (lambda (c)
          (server-call-mutate
           "stats"
-          (list (list "image" "img")
-                (list "count" 21))
+          (list
+           (list "land" (egglab-data-land (game-data c)))
+           (list "count" 21))
           (lambda (c data)
             (nightjar-best
              (game-modify-data
               (lambda (d)
-                (egglab-data
-                 0
+                (egglab-data-start-game
+                 d 0
                  (make-best-population c (eval-string data))
                  (list 0 0)))
               c))))
          c))
 
       (image-button
-       "Back" (+ (/ screen-width 2) 50) 900 "jumpy" (find-image "button.png")
+       "Back" 1150 720 "jumpy" (find-image "button.png")
        (lambda (c) (nightjar-choose-location c)))
 
 
@@ -467,18 +480,16 @@
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
-      (set! ctx.font "normal 70pt 'Press Start 2P'")
-      (wrap-text ctx "EGGLAB" 0 200 1000 1000)
-      (set! ctx.font "normal 20pt 'Press Start 2P'")
-      (wrap-text ctx "Ok to donate your game to science?" 0 300 1000 1000))
+      (set! ctx.font "normal 15pt 'Press Start 2P'")
+      (wrap-text ctx "Ok to donate your game to science?" 0 200 1000 1000))
     (game-modify-buttons
      (list
       (image-button
-       "Yes!" (/ screen-width 2) 400 "jumpy" (find-image "button.png")
+       "Yes!" (- (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
        (lambda (c)
          (server-call-mutate
           "sample"
-          (list (list "image" "img")
+          (list (list "land" (egglab-data-land (game-data c)))
                 (list "count" 18)
                 (list "thresh" 95))
           (lambda (c data)
@@ -491,7 +502,7 @@
                    d
                    (game-time c)
                    (make-population "flicker" (eval-string data))
-                   (list (random 3000) (random 300))))
+                   (list 0 0)))
                 c)))
              (else
               (nightjar-scroll-game
@@ -507,7 +518,7 @@
 
 
       (image-button
-       "No thanks" (/ screen-width 2) 800 "jumpy" (find-image "button.png")
+       "No thanks" (+ (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
        (lambda (c) (nightjar-intro c))))
 
      c))))
@@ -559,12 +570,12 @@
            (game-modify-world-offset c (list t 0))
            (begin
              ;;(send-remaining c)
-             (nightjar-intro
+             (nightjar-env
               (game-modify-world-offset c (list 0 0)))))))
    (game-modify-render
     (lambda (ctx)
       (ctx.drawImage (find-image "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg") 0 0)
-      (set! ctx.font "normal 20pt 'Press Start 2P'")
+      (set! ctx.font "normal 15pt 'Press Start 2P'")
 
       (ctx.fillText (string-append (length (game-buttons c)) " eggs remaining")
                     (- 100 (car (game-world-offset c)))
@@ -610,7 +621,8 @@
          (server-call
           "add"
           (list
-           (list "image" "")
+           (list "image" (car (egglab-data-images (game-data c))))
+           (list "land" (egglab-data-land (game-data c)))
            (list "game" "flicker")
            (list "genotype" (scheme-txt (individual-egg egg)))
            (list "fitness" (time-elapsed c))))
@@ -618,19 +630,21 @@
          (if (eq? (length (egglab-data-eggs (game-data c))) 1)
              (begin
                (msg "reset...")
-               (nightjar-intro c))
+               (nightjar-env c))
              (game-modify-buttons
               (list
                (flicker-build-egg
                 (dbg (game-modify-data
                       (lambda (d)
-                        (egglab-data-modify-offset
-                         (egglab-data-modify-eggs
-                          (egglab-data-modify-time
-                           d
-                           (game-time c))
-                          (cdr (egglab-data-eggs d)))
-                         (list (random 2000) (random 300))))
+                        (egglab-data-modify-images
+                         (egglab-data-modify-offset
+                          (egglab-data-modify-eggs
+                           (egglab-data-modify-time
+                            d
+                            (game-time c))
+                           (cdr (egglab-data-eggs d)))
+                          (list 0 0))
+                         (cdr (egglab-data-images d))))
                       c))))
               c)))))))
 
@@ -638,7 +652,7 @@
   (console.log "building - game")
   (game-modify-render
    (lambda (ctx)
-     (ctx.drawImage (find-image "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg")
+     (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))
                     (- 0 (car (egglab-data-offset (game-data c))))
                     (- 0 (cadr (egglab-data-offset (game-data c)))))
      (set! ctx.font "normal 30pt 'Press Start 2P'"))
@@ -659,8 +673,8 @@
     (game-modify-buttons
      (cons
       (image-button
-       "Back" (/ screen-width 2) 750 #f (find-image "button.png")
-       (lambda (c) (nightjar-intro c)))
+       "Back" 1150 720 #f (find-image "button.png")
+       (lambda (c) (nightjar-env c)))
       (map
        (lambda (egg)
          (let ((pos (individual-pos egg)))
@@ -683,7 +697,7 @@
    (game-modify-buttons
     (list
      (image-button
-      "Back" 1150 850 #f (find-image "button.png")
+      "Back" 1150 720 #f (find-image "button.png")
       (lambda (c)
         (nightjar-best c))))
     c)))
@@ -697,7 +711,6 @@
 (load-images!
  (append
   (list
-   "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg"
    "button.png"
    "egg.png"
    "cf.png"
@@ -707,3 +720,117 @@
   egg-images)
  (lambda ()
    (start-game canvas ctx)))
+
+
+(define cf_images
+  (list "_CF_CF001_Eggs_L_Control_2m_DSC_0144.jpg"
+        "_CF_CF001_Eggs_R_Control_2m_DSC_0183.jpg"
+        "_CF_CF002_Eggs_L_Control_2m_DSC_0367.jpg"
+        "_CF_CF002_Eggs_R_Control_2m_DSC_0403.jpg"
+        "_CF_CF003_Eggs_L_Control_2m_DSC_0586.jpg"
+        "_CF_CF003_Eggs_R_Control_2m_DSC_0622.jpg"
+        "_CF_CF004_Eggs_L_Control_2m_DSC_1516.jpg"
+        "_CF_CF004_Eggs_R_Control_2m_DSC_1558.jpg"
+        "_CF_CF005_Eggs_L_Control_2m_DSC_1307.jpg"
+        "_CF_CF005_Eggs_R_Control_2m_DSC_1343.jpg"
+        "_CF_CF006_Eggs_L_Control_2m_DSC_0818.jpg"
+        "_CF_CF006_Eggs_R_Control_2m_DSC_0854.jpg"
+        "_CF_CF009_Eggs_L_Control_2m_DSC_1139.jpg"
+        "_CF_CF009_Eggs_R_Control_2m_DSC_1178.jpg"
+        "_CF_CF010_Eggs_L_Control_2m_DSC_1603.jpg"
+        "_CF_CF010_Eggs_R_Control_2m_DSC_1645.jpg"
+        "_CF_CF011_Eggs_L_Control_2m_DSC_1780.jpg"
+        "_CF_CF011_Eggs_R_Control_2m_DSC_1822.jpg"
+        "_CF_CF012_Eggs_L_Control_2m_DSC_2032.jpg"
+        "_CF_CF012_Eggs_R_Control_2m_DSC_2074.jpg"
+        "_CF_CF013_Eggs_L_Control_2m_DSC_2206.jpg"
+        "_CF_CF013_Eggs_R_Control_2m_DSC_2251.jpg"
+        "_CF_CF014_Eggs_L_Control_2m_DSC_2293.jpg"
+        "_CF_CF014_Eggs_R_Control_2m_DSC_2335.jpg"
+        "_CF_CF015_Eggs_L_Control_2m_DSC_2812.jpg"
+        "_CF_CF015_Eggs_R_Control_2m_DSC_2854.jpg"
+        "_CF_CF017_Eggs_L_Control_2m_DSC_3796.jpg"
+        "_CF_CF017_Eggs_R_Control_2m_DSC_3841.jpg"
+        "_CF_CF020_Eggs_L_Control_2m_DSC_5035.jpg"
+        "_CF_CF020_Eggs_R_Control_2m_DSC_5083.jpg"
+        "_CF_CF021_Eggs_L_Control_2m_DSC_4936.jpg"
+        "_CF_CF021_Eggs_R_Control_2m_DSC_4987.jpg"
+        "_CF_CF022_Eggs_L_Control_2m_DSC_5443.jpg"
+        "_CF_CF022_Eggs_R_Control_2m_DSC_5491.jpg"
+        "_CF_CF024_Eggs_L_Control_2m_DSC_5884.jpg"
+        "_CF_CF024_Eggs_R_Control_2m_DSC_5932.jpg"
+        "_CF_CF025_Eggs_L_Control_2m_DSC_6082.jpg"
+        "_CF_CF025_Eggs_R_Control_2m_DSC_6130.jpg"
+        "_CF_CF026_Eggs_L_Control_2m_DSC_5983.jpg"
+        "_CF_CF026_Eggs_R_Control_2m_DSC_6031.jpg"
+        "_CF_CF027_Eggs_L_Control_2m_DSC_6574.jpg"
+        "_CF_CF027_Eggs_R_Control_2m_DSC_6622.jpg"
+        "_CF_CF028_Eggs_L_Control_2m_DSC_6469.jpg"
+        "_CF_CF028_Eggs_R_Control_2m_DSC_6520.jpg"
+        "_CF_CF029_Eggs_L_Control_2m_DSC_6769.jpg"
+        "_CF_CF029_Eggs_R_Control_2m_DSC_6817.jpg"
+        "_CF_CF031_Eggs_L_Control_2m_DSC_7789.jpg"
+        "_CF_CF031_Eggs_R_Control_2m_DSC_7837.jpg"
+        "_CF_CF032_Eggs_L_Control_2m_DSC_8413.jpg"
+        "_CF_CF032_Eggs_R_Control_2m_DSC_8461.jpg"
+        "_CF_CF034_Eggs_L_Control_2m_DSC_8512.jpg"
+        "_CF_CF034_Eggs_R_Control_2m_DSC_8569.jpg"
+        "_CF_CF035_Eggs_L_Control_2m_DSC_8812.jpg"
+        "_CF_CF035_Eggs_R_Control_2m_DSC_8860.jpg"
+        "_CF_CF036_Eggs_L_Control_2m_DSC_8716.jpg"
+        "_CF_CF036_Eggs_R_Control_2m_DSC_8764.jpg"))
+
+(define cp_images
+  (list "_CP_CP001_Eggs_L_Control_2m_DSC_0906.jpg"
+        "_CP_CP001_Eggs_R_Control_2m_DSC_0093.jpg"
+        "_CP_CP002_Eggs_L_Control_2m_with_GS_DSC_0540.jpg"
+        "_CP_CP002_Eggs_R_Control_2m_with_GS_DSC_0573.jpg"
+        "_CP_CP010_Eggs_L_Control_2m_DSC_0662.jpg"
+        "_CP_CP010_Eggs_R_Control_2m_DSC_0701.jpg"
+        "_CP_CP011_Eggs_L_Control_2m_DSC_1232.jpg"
+        "_CP_CP011_Eggs_R_Control_2m_DSC_1271.jpg"
+        "_CP_CP012_Eggs_L_Control_2m_DSC_1690.jpg"
+        "_CP_CP012_Eggs_R_Control_2m_DSC_1738.jpg"
+        "_CP_CP014_Eggs_L_Control_2m_DSC_2464.jpg"
+        "_CP_CP014_Eggs_R_Control_2m_DSC_2506.jpg"
+        "_CP_CP015_Eggs_L_Control_2m_DSC_2638.jpg"
+        "_CP_CP015_Eggs_R_Control_2m_DSC_2680.jpg"
+        "_CP_CP016_Eggs_L_Control_2m_DSC_2986.jpg"
+        "_CP_CP016_Eggs_R_Control_2m_DSC_3034.jpg"
+        "_CP_CP017_Eggs_L_Control_2m_DSC_3889.jpg"
+        "_CP_CP017_Eggs_R_Control_2m_DSC_3931.jpg"
+        "_CP_CP018_Eggs_L_Control_2m_DSC_4840.jpg"
+        "_CP_CP018_Eggs_R_Control_2m_DSC_4888.jpg"
+        "_CP_CP019_Eggs_L_Control_2m_DSC_5119.jpg"
+        "_CP_CP019_Eggs_R_Control_2m_DSC_5158.jpg"
+        "_CP_CP024_Eggs_L_Control_2m_DSC_6373.jpg"
+        "_CP_CP024_Eggs_R_Control_2m_DSC_6421.jpg"
+        "_CP_CP025_Eggs_L_Control_2m_DSC_6670.jpg"
+        "_CP_CP025_Eggs_R_Control_2m_DSC_6721.jpg"
+        "_CP_CP026_Eggs_L_Control_2m_DSC_6964.jpg"
+        "_CP_CP026_Eggs_R_Control_2m_DSC_7012.jpg"
+        "_CP_CP027_Eggs_L_Control_2m_DSC_7081.jpg"
+        "_CP_CP027_Eggs_R_Control_2m_DSC_7132.jpg"
+        "_CP_CP029_Eggs_L_Control_2m_DSC_7300.jpg"
+        "_CP_CP029_Eggs_R_Control_2m_DSC_7348.jpg"
+        "_CP_CP031_Eggs_L_Control_2m_DSC_8317.jpg"
+        "_CP_CP031_Eggs_R_Control_2m_DSC_8365.jpg"
+        "_CP_CP032_Eggs_L_Control_2m_DSC_8218.jpg"
+        "_CP_CP032_Eggs_R_Control_2m_DSC_8266.jpg"))
+
+(define mv_images
+  (list
+   "_MV_MV001_Eggs_L_Control_2m_DSC_3973.jpg"
+   "_MV_MV001_Eggs_R_Control_2m_DSC_4021.jpg"
+   "_MV_MV002_Eggs_L_Control_2m_DSC_6178.jpg"
+   "_MV_MV002_Eggs_R_Control_2m_DSC_6226.jpg"
+   "_MV_MV003_Eggs_L_Control_2m_DSC_7399.jpg"
+   "_MV_MV003_Eggs_R_Control_2m_DSC_7447.jpg"
+   "_MV_MV004_Eggs_L_Control_2m_DSC_7597.jpg"
+   "_MV_MV004_Eggs_R_Control_2m_DSC_7645.jpg"
+   "_MV_MV005_Eggs_L_Control_2m_DSC_7693.jpg"
+   "_MV_MV005_Eggs_R_Control_2m_DSC_7741.jpg"
+   "_MV_MV006_Eggs_L_Control_2m_DSC_8041.jpg"
+   "_MV_MV006_Eggs_R_Control_2m_DSC_8092.jpg"
+   "_MV_MV007_Eggs_L_Control_2m_DSC_8908.jpg"
+   "_MV_MV007_Eggs_R_Control_2m_DSC_8956.jpg"))

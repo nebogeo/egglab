@@ -18,11 +18,6 @@
     cache: false
 })")
 
-(define (msg a)
-  (console.log a))
-
-(define (dbg a)
-  (msg a) a)
 
   ;; hack together a js object to send
 (define (build-url-args args)
@@ -35,62 +30,16 @@
     (set! args.fn name)
     (let ((v ($.get "egglab" args)))
       (v.fail (lambda (jqXHR textStatus errorThrown)
-                (console.log textStatus)
-                (console.log errorThrown))))))
+                (msg textStatus)
+                (msg errorThrown))))))
 
 (define (server-call-mutate name argsl f)
   (let ((args (build-url-args argsl)))
     (set! args.fn name)
     (let ((v ($.get "egglab" args (mutate-game f))))
       (v.fail (lambda (jqXHR textStatus errorThrown)
-                (console.log textStatus)
-                (console.log errorThrown))))))
-
-(define (scheme-txt v)
-  (cond
-    ((number? v) v)
-    ((string? v) (string-append "'" v "'"))
-    ((boolean? v) (if v "#t" "#f"))
-    ((list? v)
-     (cond
-       ((null? v) "()")
-       (else
-        (list-txt v))))
-   (else (msg (+ "scheme->txt, unsupported type for " v)))))
-
-(define (list-txt l)
-  (define (_ l s)
-    (cond
-     ((null? l) s)
-     (else
-      (_ (cdr l)
-         (string-append
-          s
-          (if (not (eq? s "")) " " "")
-          (scheme-txt (car l)))))))
-  (string-append "(list " (_ l "") ")"))
-
-(define (choose l)
-  (list-ref l (random (length l))))
-
-(define (delete-n l n)
-  (if (eq? n 0)
-      (cdr l)
-      (append (list (car l)) (delete-n (cdr l) (- n 1)))))
-
-(define shuffle
-  (lambda (l)
-    (if (< (length l) 2)
-        l
-        (let ((item (random (length l))))
-          (cons (list-ref l item)
-                (shuffle (delete-n l item)))))))
-
-(define (crop l n)
-  (cond
-   ((null? l) ())
-   ((zero? n) ())
-   (else (cons (car l) (crop (cdr l) (- n 1))))))
+                (msg textStatus)
+                (msg errorThrown))))))
 
 (define (transform x y r s) (list x y r s))
 
@@ -116,7 +65,7 @@
   (let ((image (js "new Image()")))
     (set! image.onerror
           (lambda ()
-            (console.log (+ "error loading:" fn))))
+            (msg (+ "error loading:" fn))))
     (set! image.onload
           (lambda ()
             (set! image-lib (cons (list fn image) image-lib))
@@ -129,7 +78,6 @@
             (when (eq? (length image-lib)
                        (length images))
                   (finished))))
-;;    (console.log (+ "loading " (+ "images/" fn)))
     (set! image.src (+ "images/" fn))))
 
 (define (load-images! l finished)
@@ -388,7 +336,7 @@
   (for-each
    (lambda (b)
      (button-render! ctx t b))
-   b))
+   (reverse b)))
 
 ;; ----------------------------------------
 
@@ -470,14 +418,13 @@
                (my (/ (- e.clientY rect.top) sy)))
            (set! game (game-input game mx my)))))))
 
-  (console.log "building game")
+  (msg "building game")
   ;; todo - pass in game specific func
   (set! game (nightjar-intro (make-new-game)))
   (requestAnimFrame top-render ctx))
 
 (define (mutate-game f)
   (lambda (data)
-    (display data)(newline)
     (set! game (f game data))))
 
 (define (nightjar-heading ctx txt)
@@ -499,16 +446,13 @@
 
 ;; ----------------------------------------
 
-(console.log "started nightjar game")
+(msg "started nightjar game")
 
 (define canvas (document.getElementById "canvas"))
 (define ctx (canvas.getContext "2d"))
 
-;(define screen-width 1024)
-;(define screen-height 768)
-(define screen-width (* 1024 1.3))
-(define screen-height (* 768 1.3))
-
+(define screen-width 1237)
+(define screen-height 820)
 
 (define load-time (js "new Date()"))
 
