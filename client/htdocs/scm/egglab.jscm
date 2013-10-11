@@ -341,10 +341,10 @@
           (game-modify-data
            (lambda (d)
              (egglab-data-modify-images
-              d (shuffle (cons fullpath (egglab-data-images d)))))
+              d (append (egglab-data-images d) (list fullpath))))
            c))
         fullpath)))
-   l))
+   (crop (shuffle l) num-eggs-total)))
 
 (define (nightjar-choose-location c)
   (game-modify-render
