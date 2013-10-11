@@ -426,7 +426,7 @@
        ctx (string-append "Nesting sites of the " nj) 0 100 1000 60)
       (set! ctx.font "normal 15pt 'Press Start 2P'")
       (wrap-text
-       ctx "All you need to do is click on the eggs as soon as you see them. We use timing information to guide the artificial evolution of the eggs."
+       ctx "All you need to do is click on the eggs as soon as you see them. We use your timing information in order to find out about camouflage perception, by slowly making the eggs harder to spot."
        0 300 1000 30)))
 
     (game-modify-buttons
@@ -585,7 +585,7 @@
                       ((eq? (egglab-data-land (game-data c)) "MV") "Pennant-winged Nightjar")
                       (else "oops"))))
         (set! ctx.font "normal 30pt 'Press Start 2P'")
-        (wrap-text ctx (string-append "Fitness for the " nj " population") 0 100 1000 70)
+        (wrap-text ctx (string-append "Fitness for the " nj " eggs") 0 100 1000 70)
         (set! ctx.font "normal 10pt 'Press Start 2P'")
         (draw-fitness-graph ctx table 50 250 1000 500)))
 
