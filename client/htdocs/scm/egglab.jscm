@@ -344,7 +344,7 @@
               d (append (egglab-data-images d) (list fullpath))))
            c))
         fullpath)))
-   (crop (shuffle l) num-eggs-total)))
+   (shuffle l)))
 
 (define (nightjar-choose-location c)
   (game-modify-render
@@ -842,11 +842,12 @@
         d (map
            (lambda (i)
              (bg-full-path land i))
-           (cond
-            ((eq? land "CF") cf_images)
-            ((eq? land "CP") cp_images)
-            ((eq? land "MV") mv_images)
-            (else (msg "oops") cf_images))))))
+           (shuffle
+            (cond
+             ((eq? land "CF") cf_images)
+             ((eq? land "CP") cp_images)
+             ((eq? land "MV") mv_images)
+             (else (msg "oops") cf_images)))))))
    c))
 
 (define (egglab-add-time t d)
