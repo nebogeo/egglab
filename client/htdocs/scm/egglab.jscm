@@ -565,10 +565,10 @@
           (ctx.save)
           (ctx.translate x (+ y -100 (/ h 2)))
           (ctx.rotate (/ Math.PI 2))
-          (ctx.fillText "Av time in seconds" 0 0)
+          (ctx.fillText "Average time in seconds" 0 0)
           (ctx.restore)
-          (ctx.fillText (time-to-seconds (car mm)) x y)
-          (ctx.fillText (time-to-seconds (cadr mm)) x (+ y h))
+          (ctx.fillText (time-to-seconds (cadr mm)) x y)
+          (ctx.fillText (time-to-seconds (car mm)) x (+ y h))
 
           (ctx.fillText "Num eggs recorded" (+ x h -100) (+ 20 y (/ w 2)))
           (ctx.fillText "0" x (+ 20 y h))
