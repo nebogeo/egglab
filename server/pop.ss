@@ -28,7 +28,7 @@
                   (ktv "game" "varchar" game)
                   (ktv "genotype" "varchar" genotype)
                   (ktv "fitness" "real" fitness)))
-  (if (< (random 100) 5)
+  (if (< (random 100) 2)
       (pop-oldest-cull db land pop-size)
       (pop-cull db land pop-size))
 
@@ -56,9 +56,9 @@
                 "select g.value from pop_entity as e "
                 "join pop_value_varchar as g on (g.entity_id = e.entity_id) and (g.attribute_id = 'genotype') "
                 "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
-                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'fitness') and (v.value > ?) "
+                "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'fitness') "
                 "where entity_type = ? and l.value = ? order by random() limit ?")
-            (inexact->exact (round (fitness-thresh db thresh))) "egg" land count)))
+            "egg" land count)))
     (if (null? s)
         '()
         (map
@@ -68,10 +68,9 @@
 
 ;; top n eggs
 (define (pop-stats db land count)
-  (msg land count)
   (let ((s (db-select
             db (string-append
-                "select g.value from pop_entity as e "
+                "select g.value, v.value from pop_entity as e "
                 "join pop_value_varchar as g on (g.entity_id = e.entity_id) and (g.attribute_id = 'genotype') "
                 "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
                 "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'fitness') "
@@ -81,7 +80,7 @@
         '()
         (map
          (lambda (i)
-           (vector-ref i 0))
+           (list (vector-ref i 0) (vector-ref i 1)))
          (cdr s)))))
 
 (define (cull db l size)

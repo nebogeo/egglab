@@ -69,8 +69,12 @@
           "(list "
           (apply
            string-append
-           (pop-stats db land (string->number count)))
+           (map
+            (lambda (i)
+              (string-append "(list " (car i) " " (number->string (cadr i)) ")"))
+            (pop-stats db land (string->number count))))
           ")"))))))
+
 
 
    (register

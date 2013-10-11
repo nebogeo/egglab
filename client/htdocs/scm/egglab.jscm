@@ -17,7 +17,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; gp
 
-
+(define num-eggs-total 15)
+(define num-eggs-from-population 14)
+(define num-best-eggs 50)
 
 (define egg-images
   (build-list 24 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
@@ -119,13 +121,13 @@
       (list (random world-w) (random world-h))))
 
 (define (make-population game samples)
-  (let ((new-eggs (- 20 (length samples))))
+  (let ((new-eggs (- num-eggs-total (length samples))))
     (append
      (map
       (lambda (sample)
         (let ((program (egg-mutate sample 0.01)))
           (make-individual
-           0 (egg-drawable program)
+           0 (egg-drawable program #t)
            program
            (make-pos game))))
       samples)
@@ -136,27 +138,35 @@
         ;; fixme
         (let ((program (eval-string (scheme-txt (make-random-egg 6)))))
           (make-individual
-           0 (egg-drawable program)
+           0 (egg-drawable program #t)
            program
            (make-pos game))))))))
 
 (define (make-best-population game samples)
   (index-map
-   (lambda (i program)
-     (let ((x (modulo i 7)) (y (Math.floor (/ i 7))))
-       (let ((xx (+ 100 (* x 160)))
-             (yy (+ 300 (* y 150))))
-         (make-individual
-          0 (egg-drawable program)
-          program
-          (list xx yy)))))
+   (lambda (i sample)
+     (let ((program (car sample))
+           (fitness (cadr sample)))
+     (let ((x (modulo i 10)) (y (Math.floor (/ i 10))))
+       (let ((xx (+ 200 (* x 90)))
+             (yy (+ 260 (* y 120))))
+         (list
+          (make-individual
+           0 (egg-drawable program #f)
+           program
+           (list xx yy))
+          (/ (Math.floor (/ fitness 10)) 100))))))
    samples))
 
-(define (egg-drawable program)
+(define (egg-drawable program rotate)
   (let ((tcanvas (document.createElement "canvas")))
     (set! tcanvas.width 128)
     (set! tcanvas.height 128)
     (let ((tctx (tcanvas.getContext "2d")))
+      (when rotate
+            (tctx.translate 64 64)
+            (tctx.rotate (* (rndf) 2 Math.PI))
+            (tctx.translate -64 -64))
       (draw-egg tctx program)
       (set! tctx.globalCompositeOperation "destination-atop")
       (tctx.drawImage (find-image "egg.png") 0 0)
@@ -329,9 +339,8 @@
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (wrap-text ctx "Choose your location" 0 50 1000 1000)
-     (set! ctx.font "normal 15pt 'Press Start 2P'")
-     (wrap-text ctx "Land of the ..." 0 100 1000 1000))
+     (wrap-text ctx "Choose your nightjar species" 0 100 1000 1000)
+     (set! ctx.font "normal 15pt 'Press Start 2P'"))
 
    (game-modify-buttons
     (list
@@ -419,12 +428,12 @@
       (set! ctx.font "normal 15pt 'Press Start 2P'")
       (wrap-text
        ctx "All you need to do is click on the eggs as soon as you see them. We use timing information to guide the artificial evolution of the eggs."
-       0 200 1000 30))
+       0 300 1000 30))
 
     (game-modify-buttons
      (list
       (image-button
-       "Play the game" (- (/ screen-width 2) 300) 400 "jumpy" (find-image "button.png")
+       "Play the game" (- (/ screen-width 2) 200) 500 "jumpy" (find-image "button.png")
        (lambda (c)
          (nightjar-research "flicker" c)))
 
@@ -449,13 +458,13 @@
 ;         c))
 
       (image-button
-       "See the best eggs" (+ (/ screen-width 2) 300) 400 "jumpy" (find-image "button.png")
+       "See the best eggs" (+ (/ screen-width 2) 200) 500 "jumpy" (find-image "button.png")
        (lambda (c)
          (server-call-mutate
           "stats"
           (list
            (list "land" (egglab-data-land (game-data c)))
-           (list "count" 21))
+           (list "count" num-best-eggs))
           (lambda (c data)
             (nightjar-best
              (game-modify-data
@@ -480,8 +489,10 @@
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
-      (set! ctx.font "normal 15pt 'Press Start 2P'")
-      (wrap-text ctx "Ok to donate your game to science?" 0 200 1000 1000))
+      (set! ctx.font "normal 30pt 'Press Start 2P'")
+      (wrap-text ctx "Ok to donate your game to science?" 0 200 1000 70)
+      (set! ctx.font "normal 15pt 'Press Start 2P'"))
+
     (game-modify-buttons
      (list
       (image-button
@@ -490,7 +501,7 @@
          (server-call-mutate
           "sample"
           (list (list "land" (egglab-data-land (game-data c)))
-                (list "count" 18)
+                (list "count" num-eggs-from-population)
                 (list "thresh" 95))
           (lambda (c data)
             (cond
@@ -521,6 +532,22 @@
        "No thanks" (+ (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
        (lambda (c) (nightjar-intro c))))
 
+     c))))
+
+(define (nightjar-thanks c)
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (set! ctx.font "normal 30pt 'Press Start 2P'")
+      (wrap-text ctx "Thanks for playing!" 0 200 1000 70)
+      (set! ctx.font "normal 15pt 'Press Start 2P'"))
+
+    (game-modify-buttons
+     (list
+      (image-button
+       "Continue" (/ screen-width 2) 400 "jumpy" (find-image "button.png")
+       (lambda (c) (nightjar-env c))))
      c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -609,7 +636,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (flicker-build-egg c)
-  (msg "building egg")
   (let ((egg (car (egglab-data-eggs (game-data c)))))
     (let ((pos (individual-pos egg)))
       (image-button
@@ -629,8 +655,17 @@
 
          (if (eq? (length (egglab-data-eggs (game-data c))) 1)
              (begin
-               (msg "reset...")
-               (nightjar-env c))
+               ;; reset the images
+               (let ((land (egglab-data-land (game-data c))))
+                 (async-load-images
+                  c land
+                  (cond
+                   ((eq? land "CF") cf_images)
+                   ((eq? land "CP") cp_images)
+                   ((eq? land "MV") mv_images)
+                   (else (msg "oops") cf_images))))
+
+               (nightjar-thanks c))
              (game-modify-buttons
               (list
                (flicker-build-egg
@@ -669,23 +704,31 @@
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "normal 30pt 'Press Start 2P'")
-      (wrap-text ctx "Best eggs" 0 200 1000 1000))
+      (wrap-text ctx "Top 50 eggs" 0 100 1000 1000)
+      (set! ctx.font "normal 15pt 'Press Start 2P'")
+      (wrap-text
+       ctx "Click on an egg to see the program that creates it's pattern."
+       0 150 1000 30)
+      (set! ctx.font "normal 10pt 'Press Start 2P'"))
+
     (game-modify-buttons
      (cons
       (image-button
        "Back" 1150 720 #f (find-image "button.png")
        (lambda (c) (nightjar-env c)))
-      (map
-       (lambda (egg)
-         (let ((pos (individual-pos egg)))
-           (image-button
-            "" (car pos) (cadr pos) #f
-            (individual-drawable egg)
-            (lambda (c)
-              (nightjar-egg-view c egg)))))
 
-       (egglab-data-eggs (game-data c)))
-      )
+      (map
+       (lambda (best-egg)
+         (let ((egg (car best-egg))
+               (fitness (cadr best-egg)))
+           (let ((pos (individual-pos egg)))
+             (image-button
+              fitness (car pos) (cadr pos) #f
+              (individual-drawable egg)
+              (lambda (c)
+                (nightjar-egg-view c egg))))))
+
+       (egglab-data-eggs (game-data c))))
      c))))
 
 (define (nightjar-egg-view c egg)
@@ -693,7 +736,7 @@
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
      (draw-egg-genome ctx egg (/ screen-width 2) (/ screen-height 2))
-     (ctx.fillText "Egg genome" 20 50))
+     (ctx.fillText "Egg program" 20 50))
    (game-modify-buttons
     (list
      (image-button
@@ -833,4 +876,7 @@
    "_MV_MV006_Eggs_L_Control_2m_DSC_8041.jpg"
    "_MV_MV006_Eggs_R_Control_2m_DSC_8092.jpg"
    "_MV_MV007_Eggs_L_Control_2m_DSC_8908.jpg"
-   "_MV_MV007_Eggs_R_Control_2m_DSC_8956.jpg"))
+   "_MV_MV007_Eggs_R_Control_2m_DSC_8956.jpg"
+   "_MV_MV008_Chicks_L_Control_2m_DSC_9004.jpg"
+   "_MV_MV008_Chicks_R_Control_2m_DSC_9052.jpg"
+   ))
