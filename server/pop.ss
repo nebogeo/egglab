@@ -17,25 +17,46 @@
 (require "eavdb.ss" "utils.ss")
 (provide (all-defined-out))
 
-(define pop-size 255)
+(require (planet jaymccarthy/sqlite:5:1/sqlite))
+
+(define pop-size 1024)
+(define av-record-count 0)
+(define av-record-period 10)
 
 (define (pop-add db image land game genotype fitness)
-  (insert-entity db "pop" "egg" "gaia"
-                 (list
-                  (ktv "time" "real" (current-inexact-milliseconds))
-                  (ktv "image" "varchar" image)
-                  (ktv "land" "varchar" land)
-                  (ktv "game" "varchar" game)
-                  (ktv "genotype" "varchar" genotype)
-                  (ktv "fitness" "real" fitness)))
-  (if (< (random 100) 2)
-      (pop-oldest-cull db land pop-size)
-      (pop-cull db land pop-size))
+  (let ((t (current-inexact-milliseconds)))
+    (msg "t:" t)
+    (insert-entity db "pop" "egg" "gaia"
+                   (list
+                    (ktv "time" "real" t)
+                    (ktv "image" "varchar" image)
+                    (ktv "land" "varchar" land)
+                    (ktv "game" "varchar" game)
+                    (ktv "genotype" "varchar" genotype)
+                    (ktv "fitness" "real" fitness)))
 
-  (msg (select-first
-        db (string-append
-            "select avg(value) from pop_value_real where attribute_id = 'fitness' ")))
+    (msg (errmsg db))
 
+    (set! av-record-count (+ av-record-count 1))
+
+    (when (> av-record-count av-record-period)
+          (msg "adding av record")
+          (set! av-record-count 0)
+          (insert-entity
+           db "pop" "av-record" "gaia"
+           (list
+            (ktv "time" "real" t)
+            (ktv "land" "varchar" land)
+            (ktv "game" "varchar" game)
+            (ktv "av-fitness" "real"
+                 (select-first
+                  db (string-append
+                      "select avg(value) from pop_value_real where attribute_id = 'fitness' "))))))
+    )
+
+  (msg (errmsg db))
+  (pop-cull db land pop-size)
+  (msg (errmsg db))
   '("ok"))
 
 (define (fitness-thresh db perc)
@@ -91,13 +112,15 @@
     (delete-entity db "pop" (car (car l)))
     (cull db (cdr l) size))))
 
+
 ;; remove lowest not in this size population
 (define (pop-cull db land size)
   (let ((s (db-select
             db (string-append
-                "select e.entity_id, v.value from pop_entity as e "
+                "select e.entity_id, v.value, t.value from pop_entity as e "
                 "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
                 "join pop_value_real as v on (v.entity_id = e.entity_id) and (v.attribute_id = 'fitness') "
+                "join pop_value_real as t on (t.entity_id = e.entity_id) and (t.attribute_id = 'time') "
                 "where entity_type = ? and l.value = ? and v.value is not null order by v.value")
             "egg" land)))
     (when (not (null? s))
@@ -106,7 +129,8 @@
            (map
             (lambda (id)
               (list (vector-ref id 0)
-                    (vector-ref id 1)))
+                    (vector-ref id 1)
+                    (vector-ref id 2)))
             (cdr s))
            size))))
 
@@ -129,3 +153,50 @@
                (string-append "time: " (number->string (vector-ref id 1)))))
             (cdr s))
            size))))
+
+(define (av-fit-graph db land count)
+  (let ((s (db-select
+            db (string-append
+                "select a.value from pop_entity as e "
+                "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
+                "join pop_value_real as a on (a.entity_id = e.entity_id) and (a.attribute_id = 'av-fitness') "
+                "join pop_value_real as t on (t.entity_id = e.entity_id) and (t.attribute_id = 'time') "
+                "where entity_type = ? and l.value = ? order by t.value limit ?")
+            "av-record" land count)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (vector-ref i 0))
+         (cdr s)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; game stuff
+
+(define (player db name land game score)
+  (insert-entity db "pop" "player" "gaia"
+                 (list
+                  (ktv "time" "real" (current-inexact-milliseconds))
+                  (ktv "name" "varchar" name)
+                  (ktv "land" "varchar" land)
+                  (ktv "game" "varchar" game)
+                  (ktv "score" "real" score)))
+  '("ok"))
+
+;; random selection of count entities
+(define (hiscores db land game count)
+  (let ((s (db-select
+            db (string-append
+                "select n.value, s.value from pop_entity as e "
+                "join pop_value_varchar as n on (n.entity_id = e.entity_id) and (n.attribute_id = 'name') "
+                "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
+                "join pop_value_real as s on (s.entity_id = e.entity_id) and (s.attribute_id = 'score') "
+                "where entity_type = ? and l.value = ? order by s.value limit ?")
+            "player" land count)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0) (vector-ref i 1)))
+         (cdr s)))))

@@ -117,7 +117,7 @@
     (cond
      ((null? l) ())
      (else
-      (append l (list (car l)))))))
+      (append (reverse (cdr l)) (list (car l)))))))
 
 (define (choose l)
   (list-ref l (random (length l))))

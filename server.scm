@@ -47,6 +47,13 @@
       (pluto-response (scheme->txt '("hello")))))
 
    (register
+    (req 'add '(image land game genotype fitness))
+    (lambda (image land game genotype fitness)
+      (pluto-response
+       (scheme->txt
+        (pop-add db image land game genotype (string->number fitness))))))
+
+   (register
     (req 'sample '(land count thresh))
     (lambda (land count thresh)
       (pluto-response
@@ -75,14 +82,44 @@
             (pop-stats db land (string->number count))))
           ")"))))))
 
-
+   (register
+    (req 'fit-graph '(land count))
+    (lambda (land count)
+      (pluto-response
+       (string-append
+        (scheme->txt
+         (string-append
+          "(list "
+          (dbg (apply
+                string-append
+                (map (lambda (i)
+                       (string-append (number->string i) " "))
+                     (av-fit-graph db land (string->number count)))))
+          ")"))))))
 
    (register
-    (req 'add '(image land game genotype fitness))
-    (lambda (image land game genotype fitness)
+    (req 'player '(name land game score))
+    (lambda (name land game score)
       (pluto-response
        (scheme->txt
-        (pop-add db image land game genotype (string->number fitness))))))
+        (player db name land game (string->number score))))))
+
+   (register
+    (req 'hiscores '(land game count))
+    (lambda (land game count)
+      (pluto-response
+       (string-append
+        (scheme->txt
+         (string-append
+          "(list "
+          (apply
+           string-append
+           (map
+            (lambda (i)
+              (string-append "(list '" (car i) "' " (number->string (cadr i)) ")"))
+            (hiscores db land game (string->number count))))
+          ")"))))))
+
    ))
 
 (define (start request)

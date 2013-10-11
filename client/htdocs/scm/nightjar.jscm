@@ -221,6 +221,20 @@
 (define (rgb-to-hex r g b)
   (+ "#" (to-hex r) (to-hex g) (to-hex b)))
 
+(define (text-flashy-render ctx txt x y t)
+  (let ((m (ctx.measureText txt))
+        (cm (ctx.measureText "w")))
+    (let ((ta (txt.split "")))
+      (index-for-each
+       (lambda (i c)
+         (set! ctx.fillStyle (rgb-to-hex
+                              (* 256 (sin (+ (* t 0.001) i)))
+                              (* 256 (sin (+ (* t 0.003) i)))
+                              (* 256 (sin (+ (* t 0.004) i)))))
+
+         (ctx.fillText c (+ x (* i cm.width)) y))
+       ta))))
+
 (define (button-text-flashy-render! b t)
   (let ((m (ctx.measureText (button-name b)))
         (cm (ctx.measureText "w"))
