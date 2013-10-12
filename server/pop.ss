@@ -161,15 +161,14 @@
                 "join pop_value_varchar as l on (l.entity_id = e.entity_id) and (l.attribute_id = 'land') "
                 "join pop_value_real as a on (a.entity_id = e.entity_id) and (a.attribute_id = 'av-fitness') "
                 "join pop_value_real as t on (t.entity_id = e.entity_id) and (t.attribute_id = 'time') "
-                "where entity_type = ? and l.value = ? order by t.value desc limit ?")
+                "where entity_type = ? and l.value = ? order by t.value limit ?")
             "av-record" land count)))
     (if (null? s)
         '()
-        (reverse
-         (map
-          (lambda (i)
-            (vector-ref i 0))
-          (cdr s))))))
+        (map
+         (lambda (i)
+           (vector-ref i 0))
+         (cdr s)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
