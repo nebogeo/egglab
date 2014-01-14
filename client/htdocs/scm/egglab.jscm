@@ -1055,30 +1055,33 @@
         "_CP_CP012_Eggs_R_Control_2m_DSC_1738.jpg"
         "_CP_CP014_Eggs_L_Control_2m_DSC_2464.jpg"
         "_CP_CP014_Eggs_R_Control_2m_DSC_2506.jpg"
-        "_CP_CP015_Eggs_L_Control_2m_DSC_2638.jpg"
-        "_CP_CP015_Eggs_R_Control_2m_DSC_2680.jpg"
-        "_CP_CP016_Eggs_L_Control_2m_DSC_2986.jpg"
         "_CP_CP016_Eggs_R_Control_2m_DSC_3034.jpg"
         "_CP_CP017_Eggs_L_Control_2m_DSC_3889.jpg"
         "_CP_CP017_Eggs_R_Control_2m_DSC_3931.jpg"
-        "_CP_CP018_Eggs_L_Control_2m_DSC_4840.jpg"
-        "_CP_CP018_Eggs_R_Control_2m_DSC_4888.jpg"
         "_CP_CP019_Eggs_L_Control_2m_DSC_5119.jpg"
         "_CP_CP019_Eggs_R_Control_2m_DSC_5158.jpg"
-        "_CP_CP024_Eggs_L_Control_2m_DSC_6373.jpg"
         "_CP_CP024_Eggs_R_Control_2m_DSC_6421.jpg"
-        "_CP_CP025_Eggs_L_Control_2m_DSC_6670.jpg"
         "_CP_CP025_Eggs_R_Control_2m_DSC_6721.jpg"
         "_CP_CP026_Eggs_L_Control_2m_DSC_6964.jpg"
         "_CP_CP026_Eggs_R_Control_2m_DSC_7012.jpg"
-        "_CP_CP027_Eggs_L_Control_2m_DSC_7081.jpg"
-        "_CP_CP027_Eggs_R_Control_2m_DSC_7132.jpg"
         "_CP_CP029_Eggs_L_Control_2m_DSC_7300.jpg"
         "_CP_CP029_Eggs_R_Control_2m_DSC_7348.jpg"
         "_CP_CP031_Eggs_L_Control_2m_DSC_8317.jpg"
         "_CP_CP031_Eggs_R_Control_2m_DSC_8365.jpg"
         "_CP_CP032_Eggs_L_Control_2m_DSC_8218.jpg"
-        "_CP_CP032_Eggs_R_Control_2m_DSC_8266.jpg"))
+        "_CP_CP032_Eggs_R_Control_2m_DSC_8266.jpg"
+))
+
+;        "_CP_CP015_Eggs_L_Control_2m_DSC_2638.jpg"
+;        "_CP_CP015_Eggs_R_Control_2m_DSC_2680.jpg"
+;        "_CP_CP016_Eggs_L_Control_2m_DSC_2986.jpg"
+ ;       "_CP_CP018_Eggs_L_Control_2m_DSC_4840.jpg"
+  ;      "_CP_CP018_Eggs_R_Control_2m_DSC_4888.jpg"
+;        "_CP_CP024_Eggs_L_Control_2m_DSC_6373.jpg"
+ ;       "_CP_CP025_Eggs_L_Control_2m_DSC_6670.jpg"
+  ;      "_CP_CP027_Eggs_L_Control_2m_DSC_7081.jpg"
+  ;      "_CP_CP027_Eggs_R_Control_2m_DSC_7132.jpg"
+
 
 (define mv_images
   (list

@@ -42,3 +42,21 @@
 
 ;;(printf "unit testing filter-string.ss~n")
 ;;(unit-test)
+
+
+(define str-whitelist (list "a" "b"))
+
+(define (pass? a white)
+  (cond
+    ((null? white) #f)
+    ((equal? (car white) a) #t)
+    (else (pass? a (cdr white)))))
+
+(define (filter-list l)
+  (cond
+    ((null? l) '())
+    ((list? (car l)) (cons (filter-list (car l)) (cdr l)))
+    ((or (number? (car l))
+         (pass? (car l) str-whitelist))
+     (cons (car l) (filter-list (cdr l))))
+    (else (display "FAIL")(newline) '())))
