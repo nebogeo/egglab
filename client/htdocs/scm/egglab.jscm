@@ -496,7 +496,7 @@
            "fit-graph"
            (list
             (list "land" (egglab-data-land (game-data c)))
-            (list "count" 20))
+            (list "count" 50))
            (lambda (c data)
              (msg data)
              (nightjar-fit-graph (eval-string data) c)))
