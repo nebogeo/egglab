@@ -25,7 +25,7 @@
          "server/logger.ss"
          "server/json.ss"
          "server/utils.ss"
-         "server/eavdb.ss"
+         "server/db.ss"
          "server/txt.ss"
          "server/pop.ss")
 
@@ -35,7 +35,7 @@
 ;;(define setuid (get-ffi-obj 'setuid #f (_fun _int -> _int)))
 
 (define db-name "egglab.db")
-(define db (db-open db-name (list "pop")))
+(define db (open-db db-name))
 (open-log "log.txt")
 
 (define registered-requests
@@ -47,15 +47,25 @@
       (pluto-response (scheme->txt '("hello")))))
 
    (register
-    (req 'add '(image land game genotype fitness))
-    (lambda (image land game genotype fitness)
+
+    (req 'add '(population replicate player-id fitness individual-fitness generation parent image genotype))
+    (lambda (population replicate player-id fitness individual-fitness generation parent image genotype)
       (pluto-response
        (scheme->txt
-        (pop-add db image land game genotype (string->number fitness))))))
+        (pop-add
+         db
+         population
+         (string->number replicate)
+         (string->number player-id)
+         (string->number fitness)
+         (string->number individual-fitness)
+         (string->number generation)
+         (string->number parent)
+         image genotype)))))
 
    (register
-    (req 'sample '(land count thresh))
-    (lambda (land count thresh)
+    (req 'sample '(population replicate count top))
+    (lambda (population replicate count top)
       (pluto-response
        (string-append
         (scheme->txt
@@ -63,12 +73,17 @@
           "(list "
           (apply
            string-append
-           (pop-sample db land (string->number count) (string->number thresh)))
+           (sample-eggs-from-top
+            db
+            population
+            (string->number replicate)
+            (string->number count)
+            (string->number top)))
           ")"))))))
 
    (register
-    (req 'stats '(land count))
-    (lambda (land count)
+    (req 'top-eggs '(population replicate count))
+    (lambda (population replicate count)
       (pluto-response
        (string-append
         (scheme->txt
@@ -79,34 +94,43 @@
            (map
             (lambda (i)
               (string-append "(list " (car i) " " (number->string (cadr i)) ")"))
-            (pop-stats db land (string->number count))))
+            (top-eggs db population
+                      (string->number replicate)
+                      (string->number count))))
           ")"))))))
 
    (register
-    (req 'fit-graph '(land count))
-    (lambda (land count)
+    (req 'get-stats '(population replicate count))
+    (lambda (population replicate count)
       (pluto-response
        (string-append
         (scheme->txt
          (string-append
           "(list "
-          (dbg (apply
-                string-append
-                (map (lambda (i)
-                       (string-append (number->string i) " "))
-                     (av-fit-graph db land (string->number count)))))
+          (apply
+           string-append
+           (map (lambda (i)
+                  (string-append (number->string (car i)) " "))
+                (get-stats
+                 db population (string->number replicate)
+                 (string->number count))))
           ")"))))))
 
    (register
-    (req 'player '(name land game score))
-    (lambda (name land game score)
+    (req 'player '(population replicate name score played-before age-range))
+    (lambda (population replicate name score played-before age-range)
       (pluto-response
        (scheme->txt
-        (player db name land game (string->number score))))))
+        (player db population
+                (string->number replicate)
+                name
+                (string->number score)
+                played-before
+                (string->number age-range))))))
 
    (register
-    (req 'hiscores '(land game count))
-    (lambda (land game count)
+    (req 'hiscores '(population replicate count))
+    (lambda (population replicate count)
       (pluto-response
        (string-append
         (scheme->txt
@@ -117,7 +141,7 @@
            (map
             (lambda (i)
               (string-append "(list '" (car i) "' " (number->string (cadr i)) ")"))
-            (hiscores db land game (string->number count))))
+            (hiscores db population (string->number replicate) (string->number count))))
           ")"))))))
 
    ))

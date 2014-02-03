@@ -16,53 +16,59 @@
 #lang racket
 (require (planet jaymccarthy/sqlite:5:1/sqlite))
 (provide (all-defined-out))
-(require "logger.ss")
+(require "logger.ss" "utils.ss")
 (require racket/date)
 
 (define (setup db)
-  (exec/ignore db "create table egg ( id integer primary key autoincrement, player_id integer, fitness real, individual_fitness real, generation integer, parent integer, time_stamp varchar, population varchar, replicate integer, code varchar )")
-  (exec/ignore db "create table stats ( id integer primary key autoincrement, egg_count integer, time_stamp varchar, av_fitness real, max_fitness real, min_fitness real")
-  (exec/ignore db "create table player ( id integer primary key autoincrement, name varchar, population varchar, average_score real, played_before integer, age_range integer, replicate integer )")
-  )
+  (exec/ignore db "create table egg ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, player_id integer, fitness real, individual_fitness real, generation integer, parent integer, image varchar, genotype varchar )")
+  (exec/ignore db "create table player ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, name varchar, average_score real, played_before integer, age_range integer )")
+  (exec/ignore db "create table stats ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)"))
 
-(define (insert-player db name average_score played_before age_range replicate)
+(define (insert-egg db population replicate time-stamp player-id fitness
+                    individual-fitness generation parent image genotype)
   (insert
-   db "insert into player values (null, ?, ?, ?, ?, ?)"
-   name average_score (if (equal? played_before "false") "0" "1") age_range replicate))
+   db "insert into egg values (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+   population replicate time-stamp player-id fitness
+   individual-fitness generation parent image genotype))
 
-(define (insert-egg db player_id fitness individual_fitness generation parent time_stamp population replicate code)
+(define (insert-player db population replicate time-stamp name average-score
+                       played-before age-range)
   (insert
-   db "insert into egg values (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-   player_id fitness individual_fitness generation parent time_stamp population replicate code))
+   db "insert into player values (null, ?, ?, ?, ?, ?, ?, ?)"
+   population replicate time-stamp name average-score
+   (if (equal? played-before "false") "0" "1") age-range))
 
-(define (insert-stats db egg_count time_stamp av_fitness max_fitness min_fitness)
+(define (insert-stats db population replicate time-stamp egg-count av-fitness max-fitness min-fitness)
   (insert
-   db "insert into stats values (NULL, ?, ?, ?, ?, ?)"
-   egg_count time_stamp av_fitness max_fitness min_fitness))
+   db "insert into stats values (NULL, ?, ?, ?, ?, ?, ?, ?)"
+   population replicate time-stamp egg-count av-fitness max-fitness min-fitness))
+
+(define (ms->frac ms)
+  (modulo (inexact->exact (round ms)) 1000))
 
 (define (timestamp-now)
   (let* ((ms (current-inexact-milliseconds))
          (t (seconds->date (/ ms 1000))))
     (string-append
      (number->string (date-year t)) "-"
-     (number->string (date-month t)) "-"
-     (number->string (date-day t)) " "
-     (number->string (date-hour t)) ":"
-     (number->string (date-minute t)) ":"
-     (number->string (date-second t)) "."
+     (substring (number->string (+ (date-month t) 100)) 1 3) "-"
+     (substring (number->string (+ (date-day t) 100)) 1 3) " "
+     (substring (number->string (+ (date-hour t) 100)) 1 3) ":"
+     (substring (number->string (+ (date-minute t) 100)) 1 3) ":"
+     (substring (number->string (+ (date-second t) 100)) 1 3) "."
      ;; get fractional second from milliseconds
-     (number->string (/ (modulo (inexact->exact (* ms 1000)) 1000000) 1))
+     (substring (number->string (+ (ms->frac ms) 1000)) 1 4)
      )))
 
 ;; returns the fitness count eggs down in the ordered population
 (define (get-fitness-thresh db population replicate count)
-  (let ((s (db-select
+  (let ((s (select
             db (string-append
-                "select e.fitness from egg as e where"
+                "select e.fitness from egg as e where "
                 "e.population = ? and "
-                "e.replicate = ? and "
-                "order by e.fitness ")
-            population replicate thresh-fitness count)))
+                "e.replicate = ? "
+                "order by e.fitness desc limit 1 offset ?")
+            population replicate count)))
     (if (null? s)
         '()
         (map
@@ -73,13 +79,13 @@
 
 ;; return count number of eggs from eggs with fitness higher than
 ;; thresh-fitness in the population and replicate specified
-(define (sample-egg db  population replicate count thresh-fitness)
-  (let ((s (db-select
+(define (sample-egg db population replicate count thresh-fitness)
+  (let ((s (select
             db (string-append
-                "select e.code from egg as e where"
+                "select e.genotype from egg as e where "
                 "e.population = ? and "
                 "e.replicate = ? and "
-                "e.fitness > ? and "
+                "e.fitness > ? "
                 "order by random() limit ?")
             population replicate thresh-fitness count)))
     (if (null? s)
@@ -88,3 +94,90 @@
          (lambda (i)
            (vector-ref i 0))
          (cdr s)))))
+
+(define (sample-eggs-from-top db population replicate count top)
+  (let ((f (get-fitness-thresh db population replicate top)))
+    (if (null? f)
+        (sample-egg db population replicate count 0)
+        (sample-egg db population replicate count (inexact->exact (round (car f)))))))
+
+;; random selection of count entities
+(define (hiscores db population replicate count)
+  (let ((s (select
+            db (string-append
+                "select p.name, p.average_score from player as p "
+                "where p.population = ? and p.replicate = ? "
+                "order by p.average_score limit ?")
+            population replicate count)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0) (vector-ref i 1)))
+         (cdr s)))))
+
+;; top n eggs
+(define (top-eggs db population replicate count)
+  (let ((s (select
+            db (string-append
+                "select e.genotype, e.fitness from egg as e "
+                "where e.population = ? and e.replicate = ? "
+                "order by e.fitness desc limit ?")
+            population replicate count)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0) (vector-ref i 1)))
+         (cdr s)))))
+
+(define (get-stats db population replicate count)
+  (let ((s (select
+            db (string-append
+                "select s.av_fitness, s.max_fitness, s.min_fitness, s.egg_count, s.time_stamp from stats as s "
+                "where s.population = ? and s.replicate = ? "
+                "order by s.time_stamp desc limit ?")
+            population replicate count)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (msg (vector-ref i 4))
+           (list (vector-ref i 0)
+                 (vector-ref i 1)
+                 (vector-ref i 2)
+                 (vector-ref i 3)))
+         (cdr s)))))
+
+(define (open-db db-name)
+  (if (file-exists? (string->path db-name))
+      (begin
+        (display "open existing db")(newline)
+        (open (string->path db-name)))
+      (begin
+        (display "making new db")(newline)
+        (let ((db (open (string->path db-name))))
+          (setup db)
+          db))))
+
+(define (unit-tests)
+  ;; db
+  (msg "testing db")
+  (define db (open-db "unit-test.db"))
+
+  (let ((id (insert-player db "pop1" 0 "dave" 1000 #t 3)))
+    (insert-egg db id 100 0 0 0 (timestamp-now) "pop1" 0 "(foo0)")
+    (insert-egg db id 300 0 0 0 (timestamp-now) "pop1" 0 "(foo1)")
+    (insert-egg db id 200 0 0 0 (timestamp-now) "pop1" 0 "(foo2)")
+    (insert-egg db id 400 0 0 0 (timestamp-now) "pop1" 0 "(foo3)")
+    (insert-egg db id 500 0 0 0 (timestamp-now) "pop1" 0 "(foo4)")
+    (insert-egg db id 600 0 0 0 (timestamp-now) "pop1" 0 "(foo5)")
+    (insert-egg db id 700 0 0 0 (timestamp-now) "pop1" 0 "(foo6)")
+    (insert-egg db id 800 0 0 0 (timestamp-now) "pop1" 0 "(foo7)"))
+
+  (msg (sample-eggs-from-top db "pop1" 0 2 20))
+
+  )
+    ;;(define (insert-stats db egg_count time_stamp av_fitness max_fitness min_fitness)
+
+;;(unit-tests)

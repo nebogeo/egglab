@@ -436,33 +436,14 @@
        (lambda (c)
          (nightjar-research "flicker" c)))
 
-;      (image-button
-;       "Scroll game" (/ screen-width 2) 400 "jumpy" (find-image "button.png")
-;       (lambda (c)
-;         (server-call-mutate
-;          "sample"
-;          (list (list "image" "img")
-;                (list "count" 18)
-;                (list "thresh" 95))
-;          (lambda (c data)
-;            (nightjar-research
-;             "scroll"
-;             (game-modify-data
-;              (lambda (d)
-;                (egglab-data-start-game
-;                  d (game-time c)
-;                  (make-population "scroll" (eval-string data))
-;                 (list 0 0)))
-;              c))))
-;         c))
-
       (image-button
        "Top eggs" (- (/ screen-width 2) 125) 500 "jumpy" (find-image "button.png")
        (lambda (c)
          (server-call-mutate
-          "stats"
+          "top-eggs"
           (list
-           (list "land" (egglab-data-land (game-data c)))
+           (list "population" (egglab-data-land (game-data c)))
+           (list "replicate" 0)
            (list "count" num-best-eggs))
           (lambda (c data)
             (nightjar-best
@@ -481,8 +462,8 @@
          (server-call-mutate
           "hiscores"
           (list
-           (list "land" (egglab-data-land (game-data c)))
-           (list "game" "flicker")
+           (list "population" (egglab-data-land (game-data c)))
+           (list "replicate" 0)
            (list "count" 20))
           (lambda (c data)
             (msg data)
@@ -493,9 +474,10 @@
         "Fit graph" (+ (/ screen-width 2) 375) 500 "jumpy" (find-image "button.png")
         (lambda (c)
           (server-call-mutate
-           "fit-graph"
+           "get-stats"
            (list
-            (list "land" (egglab-data-land (game-data c)))
+            (list "population" (egglab-data-land (game-data c)))
+            (list "replicate" 0)
             (list "count" 50))
            (lambda (c data)
              (msg data)
@@ -613,33 +595,21 @@
        (lambda (c)
          (server-call-mutate
           "sample"
-          (list (list "land" (egglab-data-land (game-data c)))
+          (list (list "population" (egglab-data-land (game-data c)))
+                (list "replicate" 0)
                 (list "count" num-eggs-from-population)
-                (list "thresh" 95))
+                (list "top" 1024))
           (lambda (c data)
-            (cond
-             ((eq? game-type "flicker")
-              (nightjar-flicker-game
-               (game-modify-data
-                (lambda (d)
-                  (egglab-data-start-game
-                   d
-                   (game-time c)
-                   (make-population "flicker" (eval-string data))
-                   (list 0 0)))
-                c)))
-             (else
-              (nightjar-scroll-game
-               (game-modify-data
-                (lambda (d)
-                  (egglab-data-start-game
-                   d
-                   (game-time c)
-                   (make-population "scroll" (eval-string data))
-                   (list 0 0)))
-                c))))))
+            (nightjar-flicker-game
+             (game-modify-data
+              (lambda (d)
+                (egglab-data-start-game
+                 d
+                 (game-time c)
+                 (make-population "flicker" (eval-string data))
+                 (list 0 0)))
+              c))))
          c))
-
 
       (image-button
        "No thanks" (+ (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
@@ -672,10 +642,12 @@
                (server-call
                 "player"
                 (list
+                 (list "population" (egglab-data-land (game-data c)))
+                 (list "replicate" 0)
                  (list "name" (egglab-data-username (game-data c)))
-                 (list "land" (egglab-data-land (game-data c)))
-                 (list "game" "flicker")
-                 (list "score" (egglab-data-player-time (game-data c)))))
+                 (list "score" (egglab-data-player-time (game-data c)))
+                 (list "played-before" "#f")
+                 (list "age-range" 2)))
                (nightjar-env c))))))
      c))))
 
@@ -742,10 +714,12 @@
                        (server-call
                         "player"
                         (list
+                         (list "population" (egglab-data-land (game-data c)))
+                         (list "replicate" 0)
                          (list "name" (egglab-data-username (game-data c)))
-                         (list "land" (egglab-data-land (game-data c)))
-                         (list "game" "flicker")
-                         (list "score" (egglab-data-player-time (game-data c)))))
+                         (list "score" (egglab-data-player-time (game-data c)))
+                         (list "played-before" "#f")
+                         (list "age-range" 2)))
                        (nightjar-env c))))
       )
      c))))
@@ -757,20 +731,6 @@
             (lambda (egg)
               (eq? drawable (individual-drawable egg)))
             pop)))    (if (null? r) #f (car r))))
-
-(define (send-remaining c)
-  (for-each
-   (lambda (b)
-     (let ((egg (find-egg (button-drawable b)
-                          (egglab-data-eggs (game-data c)))))
-       (when egg
-             (server-call
-              "add"
-              (list
-               (list "image" "one")
-               (list "genotype" (dbg (scheme-txt (individual-egg egg))))
-               (list "fitness" 1500))))))
-   (game-buttons c)))
 
 (define (time-elapsed c)
   (- (game-time c) (egglab-data-time (game-data c))))
@@ -787,50 +747,6 @@
 (define (fitness c egg)
   (/ (screen-pos c egg) speed))
 
-(define (nightjar-scroll-game c)
-  (console.log "building - game")
-  (game-modify-update
-   (lambda (t c)
-     (let ((t (+ 1500 (* (time-elapsed c) (- 0 speed)))))
-       (if (> t -4500)
-           (game-modify-world-offset c (list t 0))
-           (begin
-             ;;(send-remaining c)
-             (nightjar-env
-              (game-modify-world-offset c (list 0 0)))))))
-   (game-modify-render
-    (lambda (ctx)
-      (ctx.drawImage (find-image "bg/_VC_VC009_Eggs_R_Control_1m_DSC_4534.jpg") 0 0)
-      (set! ctx.font "normal 15pt 'Press Start 2P'")
-
-      (ctx.fillText (string-append (length (game-buttons c)) " eggs remaining")
-                    (- 100 (car (game-world-offset c)))
-                    (- 100 (cadr (game-world-offset c)))))
-    (game-modify-buttons
-     (map
-      (lambda (egg)
-        (let ((pos (individual-pos egg)))
-          (image-button
-           "" (car pos) (cadr pos) #f
-           (individual-drawable egg)
-           (lambda (c)
-             ;;(play-sound "sounds/button.wav")
-             (server-call
-              "add"
-              (list
-               (list "image" "")
-               (list "game" "scroll")
-               (list "genotype" (scheme-txt (individual-egg egg)))
-               (list "fitness" (fitness c egg))))
-
-             (game-modify-buttons
-              (filter
-               (lambda (b)
-                 (not (eq? (button-drawable b) (individual-drawable egg))))
-               (game-buttons c))
-              c)))))
-      (egglab-data-eggs (game-data c)))
-     c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -870,11 +786,15 @@
          (server-call
           "add"
           (list
+           (list "population" (egglab-data-land (game-data c)))
+           (list "replicate" 0)
+           (list "player-id" 0)
+           (list "fitness" (time-elapsed c))
+           (list "individual-fitness" (time-elapsed c))
+           (list "generation" 0)
+           (list "parent" 0)
            (list "image" (car (egglab-data-images (game-data c))))
-           (list "land" (egglab-data-land (game-data c)))
-           (list "game" "flicker")
-           (list "genotype" (scheme-txt (individual-egg egg)))
-           (list "fitness" (time-elapsed c))))
+           (list "genotype" (scheme-txt (individual-egg egg)))))
 
          (if (eq? (length (egglab-data-eggs (game-data c))) 1)
              (game-modify-data
