@@ -66,20 +66,47 @@
    (register
     (req 'sample '(population replicate count top))
     (lambda (population replicate count top)
-      (pluto-response
-       (string-append
-        (scheme->txt
-         (string-append
-          "(list "
-          (apply
-           string-append
-           (sample-eggs-from-top
-            db
-            population
-            (string->number replicate)
-            (string->number count)
-            (string->number top)))
-          ")"))))))
+      (let ((samples (sample-eggs-from-top
+                      db
+                      population
+                      (string->number replicate)
+                      (string->number count)
+                      (string->number top))))
+        (msg "hello from sample")
+        (msg (string? (scheme->txt samples)))
+        (pluto-response (string-append
+                         (scheme->txt
+                          (string-append
+                           "(list "
+                           (apply
+                            string-append
+                            (map
+                             (lambda (s)
+                               (string-append
+                                "(list "
+                                (list-ref s 0) " "
+                                (number->string (list-ref s 1)) " "
+                                (number->string (list-ref s 2)) " "
+                                (number->string (list-ref s 3)) ")"))
+                             samples))
+                           ")")))))))
+
+
+;   (pluto-response
+;-       (string-append
+;-        (scheme->txt
+;-         (string-append
+;-          "(list "
+;-          (apply
+;-           string-append
+;-           (sample-eggs-from-top
+;-            db
+;-            population
+;-            (string->number replicate)
+;-            (string->number count)
+;-            (string->number top)))
+;-          ")"))))))
+
 
    (register
     (req 'top-eggs '(population replicate count))

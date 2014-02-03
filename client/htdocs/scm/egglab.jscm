@@ -20,6 +20,8 @@
 (define num-eggs-total 15)
 (define num-eggs-from-population 14)
 (define num-best-eggs 50)
+(define egg-complexity 2) ;; 6
+(define selection-pop-size 256)
 
 (define egg-images
   (build-list 24 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
@@ -92,14 +94,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (make-individual fitness drawable egg pos)
-  (list fitness drawable egg pos))
+(define (make-individual fitness ancestral-fitness generation parent drawable egg pos)
+  (list fitness ancestral-fitness generation parent drawable egg pos))
 
 (define (individual-fitness i) (list-ref i 0))
 (define (individual-modify-fitness i v) (list-replace i 0 v))
-(define (individual-drawable i) (list-ref i 1))
-(define (individual-egg i) (list-ref i 2))
-(define (individual-pos i) (list-ref i 3))
+(define (individual-ancestral-fitness i) (list-ref i 1))
+(define (individual-generation i) (list-ref i 2))
+(define (individual-parent i) (list-ref i 3))
+(define (individual-drawable i) (list-ref i 4))
+(define (individual-egg i) (list-ref i 5))
+(define (individual-pos i) (list-ref i 6))
 
 (define world-w 5000)
 (define world-h 500)
@@ -125,9 +130,16 @@
     (append
      (map
       (lambda (sample)
-        (let ((program (egg-mutate sample 0.01)))
+        (let ((program (egg-mutate (list-ref sample 0) 0.01))
+              (ancestral-fitness (list-ref sample 1))
+              (generation (list-ref sample 2))
+              (id (list-ref sample 3)))
           (make-individual
-           0 (egg-drawable program #t)
+           0
+           ancestral-fitness
+           (+ generation 1)
+           id
+           (egg-drawable program #t)
            program
            (make-pos game))))
       samples)
@@ -136,9 +148,9 @@
       new-eggs
       (lambda (i)
         ;; fixme
-        (let ((program (eval-string (scheme-txt (make-random-egg 6)))))
+        (let ((program (eval-string (scheme-txt (make-random-egg egg-complexity)))))
           (make-individual
-           0 (egg-drawable program #t)
+           0 0 0 0 (egg-drawable program #t)
            program
            (make-pos game))))))))
 
@@ -155,7 +167,7 @@
              (yy (+ 260 (* y 120))))
          (list
           (make-individual
-           0 (egg-drawable program #f)
+           0 0 0 0 (egg-drawable program #f)
            program
            (list xx yy))
           (time-to-seconds fitness))))))
@@ -466,7 +478,6 @@
            (list "replicate" 0)
            (list "count" 20))
           (lambda (c data)
-            (msg data)
             (nightjar-hiscores (eval-string data) c)))
          c))
 
@@ -480,7 +491,6 @@
             (list "replicate" 0)
             (list "count" 50))
            (lambda (c data)
-             (msg data)
              (nightjar-fit-graph (eval-string data) c)))
           c))
 
@@ -593,12 +603,12 @@
       (image-button
        "Yes!" (- (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
        (lambda (c)
-         (server-call-mutate
+          (server-call-mutate
           "sample"
           (list (list "population" (egglab-data-land (game-data c)))
                 (list "replicate" 0)
                 (list "count" num-eggs-from-population)
-                (list "top" 1024))
+                (list "top" selection-pop-size))
           (lambda (c data)
             (nightjar-flicker-game
              (game-modify-data
@@ -664,7 +674,6 @@
 (define (type-into-delete str)
   (car (foldl
         (lambda (c r)
-          (console.log (list c r))
           (if (and (not (cadr r)) (not (eq? c "?")))
               (list (string-append "?" (car r)) #t)
               (list (string-append c (car r)) (cadr r))))
@@ -789,10 +798,10 @@
            (list "population" (egglab-data-land (game-data c)))
            (list "replicate" 0)
            (list "player-id" 0)
-           (list "fitness" (time-elapsed c))
+           (list "fitness" (+ (individual-ancestral-fitness egg) (time-elapsed c)))
            (list "individual-fitness" (time-elapsed c))
-           (list "generation" 0)
-           (list "parent" 0)
+           (list "generation" (individual-generation egg))
+           (list "parent" (individual-parent egg))
            (list "image" (car (egglab-data-images (game-data c))))
            (list "genotype" (scheme-txt (individual-egg egg)))))
 
@@ -821,7 +830,6 @@
               c)))))))
 
 (define (nightjar-flicker-game c)
-  (console.log "building - game")
   (game-modify-render
    (lambda (ctx)
      (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))

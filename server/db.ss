@@ -82,7 +82,7 @@
 (define (sample-egg db population replicate count thresh-fitness)
   (let ((s (select
             db (string-append
-                "select e.genotype from egg as e where "
+                "select e.genotype, e.fitness, e.generation, e.id from egg as e where "
                 "e.population = ? and "
                 "e.replicate = ? and "
                 "e.fitness > ? "
@@ -92,7 +92,11 @@
         '()
         (map
          (lambda (i)
-           (vector-ref i 0))
+           (list
+            (vector-ref i 0)
+            (vector-ref i 1)
+            (vector-ref i 2)
+            (vector-ref i 3)))
          (cdr s)))))
 
 (define (sample-eggs-from-top db population replicate count top)
