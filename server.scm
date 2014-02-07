@@ -40,6 +40,8 @@
 (define db (open-db db-name))
 (open-log "log.txt")
 
+(dbg (get-family-tree db (list 164 #f)))
+
 (define registered-requests
   (list
 
@@ -103,6 +105,13 @@
         (top-eggs db population
                   (string->number replicate)
                   (string->number count))))))
+
+   (register
+    (req 'family-tree '(id))
+    (lambda (id)
+      (pluto-response
+       (scheme->json
+        (family-tree db (string->number id))))))
 
    (register
     (req 'get-stats '(population replicate count))

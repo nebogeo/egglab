@@ -124,7 +124,7 @@
 (define (top-eggs db population replicate count)
   (let ((s (select
             db (string-append
-                "select e.genotype, e.fitness from egg as e "
+                "select e.genotype, e.fitness, e.id from egg as e "
                 "where e.population = ? and e.replicate = ? "
                 "order by e.fitness desc limit ?")
             population replicate count)))
@@ -132,7 +132,9 @@
         '()
         (map
          (lambda (i)
-           (list (vector-ref i 0) (vector-ref i 1)))
+           (list (vector-ref i 0)
+                 (vector-ref i 1)
+                 (vector-ref i 2)))
          (cdr s)))))
 
 (define (get-stats db population replicate count)

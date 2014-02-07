@@ -48,6 +48,37 @@
     (exec/ignore db "end transaction")
     '("ok")))
 
+
+;; return a bunch of (id genome) lists for inheritence viz
+
+(define (family-tree db id)
+  (get-family-tree db (list id #f)))
+
+(define (get-family-tree db egg)
+  (let ((p (get-parent db egg)))
+    (msg p)
+    (if (null? p) '()
+        (cons (list egg (get-children db egg))
+              (get-family-tree db (car p))))))
+
+(define (get-parent db egg)
+  (let ((s (select db "select e.parent, e.genotype from egg as e where e.id = ? " (car egg))))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0) (vector-ref i 1)))
+         (cdr s)))))
+
+(define (get-children db egg)
+  (let ((s (select db "select e.id, e.genotype from egg as e where e.parent = ? " (car egg))))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0) (vector-ref i 1)))
+         (cdr s)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; game stuff
 

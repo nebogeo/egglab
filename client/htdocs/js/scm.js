@@ -545,22 +545,21 @@ function init() {
             //        console.log(syntax_parse);
             do_syntax=eval(syntax_parse);
         } catch (e) {
-            zc.to_page("output", "An error occured parsing syntax of "+syntax_parse);
-            zc.to_page("output",e);
-            zc.to_page("output",e.stack);
+            console.log("An error occured parsing (syntax) of "+syntax_parse);
+            console.log(e);
+            console.log(e.stack);
         }
 
         var js=zc.load("scm/base.jscm");
         js+=zc.load("scm/nightjar.jscm");
         js+=zc.load("scm/egglab.jscm");
-        zc.to_page("compiled",js);
 
         try {
             eval(js);
         } catch (e) {
-            zc.to_page("output", "An error occured while evaluating ");
-            zc.to_page("output",e);
-            zc.to_page("output",e.stack);
+            console.log("An error occured parsing "+js);
+            console.log(e);
+            console.log(e.stack);
         }
     });
 }

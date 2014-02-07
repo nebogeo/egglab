@@ -98,6 +98,8 @@
   (list fitness ancestral-fitness generation parent drawable egg pos))
 
 (define (individual-fitness i) (list-ref i 0))
+;; only for top/ancestor egg viz
+(define (individual-id i) (list-ref i 0))
 (define (individual-modify-fitness i v) (list-replace i 0 v))
 (define (individual-ancestral-fitness i) (list-ref i 1))
 (define (individual-generation i) (list-ref i 2))
@@ -161,13 +163,16 @@
   (index-map
    (lambda (i sample)
      (let ((program (car sample))
-           (fitness (cadr sample)))
+           (fitness (cadr sample))
+           (id (list-ref sample 2)))
      (let ((x (modulo i 10)) (y (Math.floor (/ i 10))))
        (let ((xx (+ 200 (* x 90)))
              (yy (+ 260 (* y 120))))
          (list
           (make-individual
-           0 0 0 0 (egg-drawable program #f)
+           id
+           0 0 0
+           (egg-drawable program #f)
            program
            (list xx yy))
           (time-to-seconds fitness))))))
@@ -906,8 +911,34 @@
      (image-button
       "Back" 1150 720 #f (find-image "button.png")
       (lambda (c)
-        (nightjar-best c))))
+        (nightjar-best c)))
+     (image-button
+      "Family Tree" 1050 720 #f (find-image "button.png")
+      (lambda (c)
+        (server-call-mutate
+         "family-tree"
+         (list (list "id" (individual-id egg))) ;; only works for the viz screens
+         (lambda (c data)
+           (nightjar-family-tree c egg (JSON.parse data))))
+        c))
+    )
     c)))
+
+(define (nightjar-family-tree c egg ancestors)
+  (alert ancestors)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     ;;(draw-egg-genome ctx egg (/ screen-width 2) (/ screen-height 2))
+     (ctx.fillText "Egg family tree" 20 50))
+   (game-modify-buttons
+    (list
+     (image-button
+      "Back" 1150 720 #f (find-image "button.png")
+      (lambda (c)
+        (nightjar-egg-view c egg))))
+    c)))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
