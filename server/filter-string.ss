@@ -33,6 +33,16 @@
   ; (string->list s))
   )
 
+(define (escape-quotes s)
+  (foldl
+   (lambda (c r)
+     (if (eq? c #\")
+         (string-append r "\\" (string c))
+         (string-append r (string c))))
+   ""
+   (string->list s)))
+
+
 (define (unit-test)
   (when (not (string=? (filter-string "should Be ok123") "should Be ok123"))
         (error "oops"))

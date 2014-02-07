@@ -80,7 +80,7 @@
      0
      l)))
 
-(define display (lambda (str) (zc.to_page "output" str)))
+(define display (lambda (str) (console.log str)))
 
 (define newline (lambda () (zc.to_page "output" "\n")))
 
@@ -150,7 +150,7 @@
 (define (scheme-txt v)
   (cond
     ((number? v) v)
-    ((string? v) (string-append "'" v "'"))
+    ((string? v) (string-append "\"" v "\""))
     ((boolean? v) (if v "#t" "#f"))
     ((list? v)
      (cond

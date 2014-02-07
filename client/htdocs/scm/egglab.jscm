@@ -20,7 +20,7 @@
 (define num-eggs-total 15)
 (define num-eggs-from-population 14)
 (define num-best-eggs 50)
-(define egg-complexity 2) ;; 6
+(define egg-complexity 6)
 (define selection-pop-size 256)
 
 (define egg-images
@@ -148,7 +148,7 @@
       new-eggs
       (lambda (i)
         ;; fixme
-        (let ((program (eval-string (scheme-txt (make-random-egg egg-complexity)))))
+        (let ((program (make-random-egg egg-complexity)))
           (make-individual
            0 0 0 0 (egg-drawable program #t)
            program
@@ -458,14 +458,21 @@
            (list "replicate" 0)
            (list "count" num-best-eggs))
           (lambda (c data)
-            (nightjar-best
-             (game-modify-data
-              (lambda (d)
-                (egglab-data-start-game
-                 d 0
-                 (make-best-population c (eval-string data))
-                 (list 0 0)))
-              c))))
+            (let ((data (JSON.parse data)))
+              (nightjar-best
+               (game-modify-data
+                (lambda (d)
+                  (egglab-data-start-game
+                   d 0
+                   (make-best-population
+                    c
+                    (map
+                     (lambda (d)
+                       ;; individually parse the egg's code
+                       (cons (JSON.parse (car d)) (cdr d)))
+                     data))
+                   (list 0 0)))
+                c)))))
          c))
 
       (image-button
@@ -478,7 +485,7 @@
            (list "replicate" 0)
            (list "count" 20))
           (lambda (c data)
-            (nightjar-hiscores (eval-string data) c)))
+            (nightjar-hiscores (JSON.parse data) c)))
          c))
 
        (image-button
@@ -491,7 +498,7 @@
             (list "replicate" 0)
             (list "count" 50))
            (lambda (c data)
-             (nightjar-fit-graph (eval-string data) c)))
+             (nightjar-fit-graph (JSON.parse data) c)))
           c))
 
 
@@ -531,9 +538,10 @@
 (define (min-max l)
   (foldl
    (lambda (i r)
-     (list
-      (if (< i (car r)) i (car r))
-      (if (> i (cadr r)) i (cadr r))))
+     (let ((i (car i)))
+       (list
+        (if (< i (car r)) i (car r))
+        (if (> i (cadr r)) i (cadr r)))))
    (list 9999999 0)
    l))
 
@@ -548,8 +556,9 @@
           (set! ctx.lineWidth 3)
           (index-for-each
            (lambda (i s)
-             (ctx.lineTo (+ x (* (+ i 1) x-per-sample))
-                         (+ y (* h (/ (- s (car mm)) (- (cadr mm) (car mm)))))))
+             (let ((s (car s)))
+               (ctx.lineTo (+ x (* (+ i 1) x-per-sample))
+                           (+ y (* h (/ (- s (car mm)) (- (cadr mm) (car mm))))))))
            table)
           (ctx.stroke)
           (set! ctx.lineWidth 1)
@@ -616,10 +625,18 @@
                 (egglab-data-start-game
                  d
                  (game-time c)
-                 (make-population "flicker" (eval-string data))
+                 (let ((e (JSON.parse data)))
+                   (make-population
+                    "flicker"
+                    (if (eq? null e) ()
+                        (map
+                         (lambda (d)
+                           ;; individually parse the egg's code
+                           (cons (JSON.parse (car d)) (cdr d)))
+                         e))))
                  (list 0 0)))
               c))))
-         c))
+          c))
 
       (image-button
        "No thanks" (+ (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
@@ -803,7 +820,7 @@
            (list "generation" (individual-generation egg))
            (list "parent" (individual-parent egg))
            (list "image" (car (egglab-data-images (game-data c))))
-           (list "genotype" (scheme-txt (individual-egg egg)))))
+           (list "genotype" (JSON.stringify (individual-egg egg)))))
 
          (if (eq? (length (egglab-data-eggs (game-data c))) 1)
              (game-modify-data

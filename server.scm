@@ -18,9 +18,11 @@
 (require scheme/system
          scheme/foreign
          scheme/cmdline
+         mzlib/string
          web-server/servlet
          web-server/servlet-env
          web-server/http/response-structs
+         "server/filter-string.ss"
          "server/request.ss"
          "server/logger.ss"
          "server/json.ss"
@@ -44,14 +46,13 @@
    (register
     (req 'ping '())
     (lambda ()
-      (pluto-response (scheme->txt '("hello")))))
+      (pluto-response (scheme->json '("hello")))))
 
    (register
-
     (req 'add '(population replicate player-id fitness individual-fitness generation parent image genotype))
     (lambda (population replicate player-id fitness individual-fitness generation parent image genotype)
       (pluto-response
-       (scheme->txt
+       (scheme->json
         (pop-add
          db
          population
@@ -61,7 +62,8 @@
          (string->number individual-fitness)
          (string->number generation)
          (string->number parent)
-         image genotype)))))
+         ;; store in escaped JSON format so we don't ever need to eval them
+         image (escape-quotes genotype))))))
 
    (register
     (req 'sample '(population replicate count top))
@@ -72,24 +74,9 @@
                       (string->number replicate)
                       (string->number count)
                       (string->number top))))
-        (msg "hello from sample")
-        (msg (string? (scheme->txt samples)))
-        (pluto-response (string-append
-                         (scheme->txt
-                          (string-append
-                           "(list "
-                           (apply
-                            string-append
-                            (map
-                             (lambda (s)
-                               (string-append
-                                "(list "
-                                (list-ref s 0) " "
-                                (number->string (list-ref s 1)) " "
-                                (number->string (list-ref s 2)) " "
-                                (number->string (list-ref s 3)) ")"))
-                             samples))
-                           ")")))))))
+        (pluto-response
+         (scheme->json
+          samples)))))
 
 
 ;   (pluto-response
@@ -112,42 +99,26 @@
     (req 'top-eggs '(population replicate count))
     (lambda (population replicate count)
       (pluto-response
-       (string-append
-        (scheme->txt
-         (string-append
-          "(list "
-          (apply
-           string-append
-           (map
-            (lambda (i)
-              (string-append "(list " (car i) " " (number->string (cadr i)) ")"))
-            (top-eggs db population
-                      (string->number replicate)
-                      (string->number count))))
-          ")"))))))
+       (scheme->json
+        (top-eggs db population
+                  (string->number replicate)
+                  (string->number count))))))
 
    (register
     (req 'get-stats '(population replicate count))
     (lambda (population replicate count)
       (pluto-response
        (string-append
-        (scheme->txt
-         (string-append
-          "(list "
-          (apply
-           string-append
-           (map (lambda (i)
-                  (string-append (number->string (car i)) " "))
-                (get-stats
-                 db population (string->number replicate)
-                 (string->number count))))
-          ")"))))))
+        (scheme->json
+         (get-stats
+          db population (string->number replicate)
+          (string->number count)))))))
 
    (register
     (req 'player '(population replicate name score played-before age-range))
     (lambda (population replicate name score played-before age-range)
       (pluto-response
-       (scheme->txt
+       (scheme->json
         (player db population
                 (string->number replicate)
                 name
@@ -159,17 +130,23 @@
     (req 'hiscores '(population replicate count))
     (lambda (population replicate count)
       (pluto-response
-       (string-append
-        (scheme->txt
-         (string-append
-          "(list "
-          (apply
-           string-append
-           (map
-            (lambda (i)
-              (string-append "(list '" (car i) "' " (number->string (cadr i)) ")"))
-            (hiscores db population (string->number replicate) (string->number count))))
-          ")"))))))
+
+       (scheme->json
+        (hiscores db population (string->number replicate) (string->number count)))
+
+       ;(string-append
+       ; (scheme->txt
+       ;  (string-append
+       ;   "(list "
+       ;   (apply
+       ;    string-append
+       ;    (map
+       ;     (lambda (i)
+       ;       (string-append "(list '" (car i) "' " (number->string (cadr i)) ")"))
+       ;     (hiscores db population (string->number replicate) (string->number count))))
+       ;   ")")))
+
+       )))
 
    ))
 

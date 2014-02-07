@@ -84,9 +84,8 @@ zc.parse_tree = function(str) {
                       str[i]==="\n"))) {
                     state="none";
                     if (in_quotes) {
-                        //console.log(current_token);
                         ret.push(current_token+"\"");
-                    in_quotes=false;
+                        in_quotes=false;
                     } else {
                         if (current_token!="") {
                             if (current_token=="#t") current_token="true";
@@ -97,6 +96,11 @@ zc.parse_tree = function(str) {
                     current_token="";
                 } else {
                     if (in_quotes) {
+                        if (str[i]=="\\") {
+                            // don't interpret what ever's next, take it literally!
+                            current_token+=str[i];
+                            i++;
+                        }
                         current_token+=str[i];
                     } else {
                         switch (str[i]) {
@@ -409,11 +413,18 @@ zc.core_forms = function(fn, args) {
             return "try {"+zc.comp(zc.car(args))+"} catch (e) { "+zc.comp(zc.cadr(args))+" }";
     }
 
-    // heart of darkness
+/*    // heart of darkness
     if (fn == "eval_string") {
         if (zc.check(fn,args,1,1))
             return "eval(zc.comp(zc.parse_tree("+zc.comp(zc.car(args))+")))";
     }
+
+    // semi-heart of darkness
+    if (fn == "string_to_sexpr") {
+        if (zc.check(fn,args,1,1))
+            return "zc.comp(zc.parse_tree("+zc.comp(zc.car(args))+"))";
+    }
+*/
 
     // js intrinsics
     if (fn == "js") {
