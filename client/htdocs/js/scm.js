@@ -535,7 +535,7 @@ zc.to_page = function(id,html)
     document.getElementById(id).appendChild(div);
 };
 
-function init() {
+function init(filename) {
 
     jQuery(document).ready(function($) {
 
@@ -545,19 +545,19 @@ function init() {
             //        console.log(syntax_parse);
             do_syntax=eval(syntax_parse);
         } catch (e) {
-            console.log("An error occured parsing (syntax) of "+syntax_parse);
+            //console.log("An error occured parsing (syntax) of "+syntax_parse);
             console.log(e);
             console.log(e.stack);
         }
 
         var js=zc.load("scm/base.jscm");
         js+=zc.load("scm/nightjar.jscm");
-        js+=zc.load("scm/egglab.jscm");
+        js+=zc.load(filename);
 
         try {
             eval(js);
         } catch (e) {
-            console.log("An error occured parsing "+js);
+            //console.log("An error occured parsing "+js);
             console.log(e);
             console.log(e.stack);
         }

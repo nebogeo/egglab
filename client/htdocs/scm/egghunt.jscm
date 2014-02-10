@@ -1,0 +1,67 @@
+;; -*- mode: scheme; -*-
+;; Egglab Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; gp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (nightjar-intro c)
+  (game-modify-render
+   (lambda (ctx)
+     (ctx.drawImage (find-image "eggs.jpg") 0 0)
+     (set! ctx.font "normal 70pt 'Press Start 2P'")
+     (wrap-text ctx "EGGHUNT" 0 200 1000 1000)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (wrap-text ctx "Construction kit" 0 250 1000 50)
+     (set! ctx.font "normal 15pt 'Press Start 2P'"))
+
+   (game-modify-draggables
+    (list
+     (draggable
+      100 100 (find-image "egg.png") (lambda (c) c))
+     )
+   (game-modify-buttons
+    (list
+
+     (image-button
+      "Click to continue!"
+      (/ screen-width 2) 700
+      "flashy" (find-image "button.png")
+      (lambda (c)
+        (alert "hello")
+        c)))
+    c))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; startup
+
+(set! ctx.font "normal 50pt 'Press Start 2P'")
+
+(load-images!
+ (append
+  (list
+   "button.png"
+   "egg.png"
+   "cf.png"
+   "cp.png"
+   "mv.png"
+   "eggs.jpg"))
+ (lambda ()
+   (start-game canvas ctx)))

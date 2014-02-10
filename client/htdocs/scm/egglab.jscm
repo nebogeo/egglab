@@ -232,9 +232,6 @@
       (draw-terminal ctx program)
       (draw-op ctx program)))
 
-(define (sin a) (Math.sin a))
-(define (cos a) (Math.cos a))
-
 (define (draw-genome-node ctx program centrex centrey posx posy d apa start end n dist)
   (let ((childstart (+ start (* apa n))))
     (let ((childend (+ childstart apa)))
@@ -291,6 +288,28 @@
   (ctx.fill)
   (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 65)
   (set! ctx.fillStyle "#fff"))
+
+(define (draw-egg-family-tree ctx ancestors)
+
+  (let ((w (/ (- screen-width 400) (length ancestors))))
+    (set! ctx.fillStyle "#000")
+    (set! ctx.font "normal 15pt 'Press Start 2P'")
+
+    (index-for-each
+     (lambda (i anc)
+       (let ((x (+ (* i w) 100)))
+
+         (fill-centre-text ctx (+ "" (car (car anc))) x 200)
+
+         (index-for-each
+          (lambda (i child)
+            (fill-centre-text ctx (+ "" (car child)) x (+ 400 (* i 20))))
+          (cadr anc))
+         ))
+     ancestors))
+
+  (set! ctx.fillStyle "#fff"))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -919,17 +938,17 @@
          "family-tree"
          (list (list "id" (individual-id egg))) ;; only works for the viz screens
          (lambda (c data)
+           (msg data)
            (nightjar-family-tree c egg (JSON.parse data))))
         c))
     )
     c)))
 
 (define (nightjar-family-tree c egg ancestors)
-  (alert ancestors)
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     ;;(draw-egg-genome ctx egg (/ screen-width 2) (/ screen-height 2))
+     (draw-egg-family-tree ctx ancestors)
      (ctx.fillText "Egg family tree" 20 50))
    (game-modify-buttons
     (list

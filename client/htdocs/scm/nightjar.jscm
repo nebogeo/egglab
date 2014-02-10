@@ -143,6 +143,7 @@
         (ctx.restore)))
 
 ;; ----------------------------------------
+;; button stuff
 
 (define (rect-button name x y w h jitter callback)
       (list "rect-button" name x y w h
@@ -186,6 +187,8 @@
 
 (define (in-circle? x y r xx yy)
   (< (dist-2d xx yy x y) r))
+
+;; fluff for fancy text rendering
 
 (define (button-do-jittering b)
   (when (eq? (button-jitter b) "rotate")
@@ -330,9 +333,6 @@
 
 ;; ----------------------------------------
 
-(define (button-list b)
-  b)
-
 (define (button-inner-update b mx my c)
   (foldl
    (lambda (b r)
@@ -353,18 +353,99 @@
    (reverse b)))
 
 ;; ----------------------------------------
+;; draggable objects
+
+;; callback fires on mouse up
+(define (draggable x y drawable callback)
+  (list (- x (/ drawable.width 2))
+        (- y (/ drawable.height 2))
+        drawable.width
+        drawable.height
+        drawable
+        #f
+        callback))
+
+(define (draggable-x b) (list-ref b 0))
+(define (draggable-modify-x b v) (list-replace b 0 v))
+(define (draggable-y b) (list-ref b 1))
+(define (draggable-modify-y b v) (list-replace b 1 v))
+(define (draggable-w b) (list-ref b 2))
+(define (draggable-h b) (list-ref b 3))
+(define (draggable-drawable b) (list-ref b 4))
+(define (draggable-state b) (list-ref b 5))
+(define (draggable-modify-state b v) (list-replace b 5 v))
+(define (draggable-callback b) (list-ref b 6))
+
+(define (draggable-render! ctx t b)
+  (ctx.save)
+  (ctx.translate (draggable-x b) (draggable-y b))
+  (ctx.drawImage
+   (draggable-drawable b)
+   0 0)
+  (ctx.restore))
+
+(define (draggable-move! b mx my)
+  (let ((drawable (draggable-drawable b)))
+    (draggable-modify-x
+     (draggable-modify-y
+      b (- my (/ drawable.height 2)))
+     (- mx (/ drawable.width 2)))))
+
+;; returns a modified draggable
+(define (draggable-update b e mx my)
+  (cond
+   ((eq? e "down")
+    (if (in-rect? (draggable-x b) (draggable-y b)
+                  (draggable-w b) (draggable-h b)
+                  mx my)
+        (draggable-modify-state b #t)
+        b))
+   ((and (eq? e "move") (draggable-state b))
+    (draggable-move! b mx my))
+   ((and (eq? e "up") (draggable-state b))
+    (draggable-modify-state b #f))
+   (else (js "b"))))
+
+;; returns an updated world on mouse up - call before draggable-update
+(define (draggable-update-world b e mx my c)
+  (if (draggable-state b)
+      (let ((fn (draggable-callback b)))
+        (list #t (fn c)))
+      (list #f c)))
+
+(define (draggables-inner-update-world b e mx my c)
+  (foldl
+   (lambda (b r)
+     (if (not (car r)) ;; if event not handled
+         (draggable-update b e mx my (cadr r))
+         (js "r")))
+   (list #f c)
+   b))
+
+(define (draggables-update-world b e mx my c)
+  (let ((r (draggables-inner-update b e mx my c)))
+    (cadr r)))
+
+(define (draggables-update e mx my c)
+  (game-modify-draggables
+   (map
+    (lambda (d)
+      (draggable-update d e mx my))
+    (game-draggables c))
+   c))
+
+(define (draggables-render! ctx t b)
+  (for-each
+   (lambda (b)
+     (draggable-render! ctx t b))
+   (reverse b)))
+
+
+;; ----------------------------------------
 
 (define (make-new-game)
-  (list 0
-        (lambda (ctx)
-          0)
-        (lambda (t c)
-          c)
-        ()
-        0
-        0
-        ()
-        (list 0 0)))
+  (list 0 (lambda (ctx) 0) (lambda (t c) c)
+        () () 0 0 () (list 0 0)))
 
 (define (game-time g) (list-ref g 0))
 (define (game-modify-time v g) (list-replace g 0 v))
@@ -374,21 +455,29 @@
 (define (game-modify-update v g) (list-replace g 2 v))
 (define (game-buttons g) (list-ref g 3))
 (define (game-modify-buttons v g) (list-replace g 3 v))
-(define (game-data g) (list-ref g 4))
-(define (game-modify-data fn g) (list-replace g 4 (fn (game-data g))))
-(define (game-mx g) (list-ref g 5))
-(define (game-modify-mx v g) (list-replace g 5 v))
-(define (game-my g) (list-ref g 6))
-(define (game-modify-my v g) (list-replace g 6 v))
-(define (game-world-offset g) (list-ref g 7))
-(define (game-modify-world-offset g v) (list-replace g 7 v))
+(define (game-draggables g) (list-ref g 4))
+(define (game-modify-draggables v g) (list-replace g 4 v))
+(define (game-data g) (list-ref g 5))
+(define (game-modify-data fn g) (list-replace g 5 (fn (game-data g))))
+(define (game-mx g) (list-ref g 6))
+(define (game-modify-mx v g) (list-replace g 6 v))
+(define (game-my g) (list-ref g 7))
+(define (game-modify-my v g) (list-replace g 7 v))
+(define (game-world-offset g) (list-ref g 8))
+(define (game-modify-world-offset g v) (list-replace g 8 v))
 
-(define (game-input g mx my)
-  (let ((mx (- mx (car (game-world-offset g))))
-        (my (- my (cadr (game-world-offset g)))))
-    (buttons-update (game-buttons g) mx my
-                    (game-modify-mx
-                     mx (game-modify-my my g)))))
+(define (game-mouse-down g mx my)
+  (draggables-update
+   "down" mx my
+   (buttons-update (game-buttons g) mx my
+                   (game-modify-mx
+                    mx (game-modify-my my g)))))
+
+(define (game-mouse-move g mx my)
+  (draggables-update "move" mx my g))
+
+(define (game-mouse-up g mx my)
+  (draggables-update "up" mx my g))
 
 ;; ----------------------------------------
 
@@ -415,22 +504,41 @@
 
           (top-render-game ctx game)
           (buttons-render! ctx t (game-buttons game))
+          (draggables-render! ctx t (game-draggables game))
           (ctx.restore))
         (requestAnimFrame top-render ctx)))
 
 (define game 0)
 
+(define (mouse-from-event g canvas e)
+  (let ((rect (canvas.getBoundingClientRect)))
+    (let ((sx (/ rect.width screen-width))
+          (sy (/ rect.height screen-height)))
+      (list (- (/ (- e.clientX rect.left) sx)
+               (car (game-world-offset g)))
+            (- (/ (- e.clientY rect.top) sy)
+               (cadr (game-world-offset g)))))))
+
 (define (start-game canvas ctx)
   (ctx.clearRect 0 0 screen-width screen-height)
+
   (canvas.addEventListener
    "mousedown"
    (lambda (e)
-     (let ((rect (canvas.getBoundingClientRect)))
-       (let ((sx (/ rect.width screen-width))
-             (sy (/ rect.height screen-height)))
-         (let ((mx (/ (- e.clientX rect.left) sx))
-               (my (/ (- e.clientY rect.top) sy)))
-           (set! game (game-input game mx my)))))))
+     (let ((m (mouse-from-event game canvas e)))
+       (set! game (game-mouse-down game (car m) (cadr m))))))
+
+  (canvas.addEventListener
+   "mousemove"
+   (lambda (e)
+     (let ((m (mouse-from-event game canvas e)))
+       (set! game (game-mouse-move game (car m) (cadr m))))))
+
+  (canvas.addEventListener
+   "mouseup"
+   (lambda (e)
+     (let ((m (mouse-from-event game canvas e)))
+       (set! game (game-mouse-up game (car m) (cadr m))))))
 
   (msg "building game")
   ;; todo - pass in game specific func

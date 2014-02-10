@@ -67,7 +67,7 @@
         '()
         (map
          (lambda (i)
-           (list (vector-ref i 0) (vector-ref i 1)))
+           (list (vector-ref i 0) ""))
          (cdr s)))))
 
 (define (get-children db egg)
@@ -76,7 +76,7 @@
         '()
         (map
          (lambda (i)
-           (list (vector-ref i 0) (vector-ref i 1)))
+           (list (vector-ref i 0) ""))
          (cdr s)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -84,6 +84,9 @@
 
 (define newline (lambda () (zc.to_page "output" "\n")))
 
+(define (sin a) (Math.sin a))
+(define (cos a) (Math.cos a))
+
 (define list-equal?
   (lambda (a b)
     (define _
