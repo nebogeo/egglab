@@ -70,11 +70,11 @@
           (lambda ()
             (set! image-lib (cons (list fn image) image-lib))
             (ctx.clearRect 0 0 screen-width screen-height)
-            (centre-text ctx "Loading..." 240)
+            (centre-text ctx "Loading..." 0 240)
             (centre-text
              ctx
              (+ "" (Math.floor (* (/ (length image-lib)
-                                     (length images)) 100)) "%")  340)
+                                     (length images)) 100)) "%") 0 340)
             (when (eq? (length image-lib)
                        (length images))
                   (finished))))
@@ -101,20 +101,20 @@
   (let ((m (ctx.measureText txt)))
     (ctx.fillText txt (- x (/ m.width 2)) y)))
 
-(define (centre-text ctx txt y)
+(define (centre-text ctx txt x y)
   (let ((m (ctx.measureText txt)))
-    (ctx.fillText txt (- (/ screen-width 2) (/ m.width 2)) y)))
+    (ctx.fillText txt (+ x (- (/ screen-width 2) (/ m.width 2))) y)))
 
 (define (wrap-text ctx text x y max-width line-height)
   (define (wrap-text-inner words line y)
     (cond
      ((null? words)
-      (centre-text ctx line y))
+      (centre-text ctx line x y))
      (else
       (let ((test-line (+ line (car words) " ")))
         (let ((metrics (ctx.measureText test-line)))
           (cond ((> metrics.width max-width)
-                 (centre-text ctx line y)
+                 (centre-text ctx line x y)
                  (wrap-text-inner (cdr words)
                                   (+ (car words) " ")
                                   (+ y line-height)))
@@ -190,13 +190,11 @@
 
 ;; fluff for fancy text rendering
 
-(define (button-do-jittering b)
+(define (button-do-jittering b t)
   (when (eq? (button-jitter b) "rotate")
         (ctx.translate (/ (button-w b) 2)
                        (/ (button-h b) 2))
-        (ctx.rotate (* 0.2 (- (rndf) 0.5)))
-        (ctx.scale (+ 1 (* 0.2 (- (rndf) 0.5)))
-                   (+ 1 (* 0.2 (- (rndf) 0.5))))
+        (ctx.rotate (* 0.05 (Math.sin (+ (* (button-offs b) 10) (* t 0.01)))))
         (ctx.translate (- 0 (/ (button-w b) 2))
                        (- 0 (/ (button-h b) 2)))))
 
@@ -295,7 +293,7 @@
   (when #f
         (ctx.save)
         (ctx.translate (button-x b) (button-y b))
-        (button-do-jittering b)
+        (button-do-jittering b t)
         (set! ctx.strokeStyle "#fff")
         (ctx.strokeRect
          0 0 (button-w b) (button-h b))
@@ -306,7 +304,7 @@
 (define (image-button-render! ctx t b)
   (ctx.save)
   (ctx.translate (button-x b) (button-y b))
-  (button-do-jittering b)
+  (button-do-jittering b t)
   (ctx.drawImage
    (button-drawable b)
    0 0)
@@ -398,13 +396,13 @@
     (if (in-rect? (draggable-x b) (draggable-y b)
                   (draggable-w b) (draggable-h b)
                   mx my)
-        (draggable-modify-state b #t)
-        b))
+        (list #t (draggable-modify-state b #t))
+        (list #f b)))
    ((and (eq? e "move") (draggable-state b))
-    (draggable-move! b mx my))
+    (list #t (draggable-move! b mx my)))
    ((and (eq? e "up") (draggable-state b))
-    (draggable-modify-state b #f))
-   (else (js "b"))))
+    (list #t (draggable-modify-state b #f)))
+   (else (list #f b))))
 
 ;; returns an updated world on mouse up - call before draggable-update
 (define (draggable-update-world b e mx my c)
@@ -427,10 +425,15 @@
     (cadr r)))
 
 (define (draggables-update e mx my c)
+  (define found (js "false")) ;; giving up...
   (game-modify-draggables
    (map
     (lambda (d)
-      (draggable-update d e mx my))
+      (if (not found)
+          (let ((result (draggable-update d e mx my)))
+            (set! found (car result))
+            (cadr result))
+          d))
     (game-draggables c))
    c))
 
@@ -438,7 +441,7 @@
   (for-each
    (lambda (b)
      (draggable-render! ctx t b))
-   (reverse b)))
+   b))
 
 
 ;; ----------------------------------------
@@ -553,17 +556,16 @@
   (set! ctx.fillStyle "#000")
   (ctx.save)
   (ctx.translate 4 4)
-  (wrap-text ctx txt 100 200 1000 100)
+  (wrap-text ctx txt 0 200 1000 100)
   (ctx.restore)
   (set! ctx.fillStyle "#fff")
-  (wrap-text ctx txt 100 200 1000 100))
-
+  (wrap-text ctx txt 0 200 1000 100))
 
 (define (nightjar-text ctx txt)
-  (wrap-text ctx txt 100 400 1000 50))
+  (wrap-text ctx txt 0 400 1000 50))
 
 (define (nightjar-all-text ctx txt)
-  (wrap-text ctx txt 100 200 1000 75))
+  (wrap-text ctx txt 0 200 1000 75))
 
 
 ;; ----------------------------------------

@@ -80,6 +80,10 @@
      0
      l)))
 
+;; fix js modulo irt negative numbers
+(define (modulo m n)
+  (js "((m%n)+n)%n"))
+
 (define display (lambda (str) (console.log str)))
 
 (define newline (lambda () (zc.to_page "output" "\n")))

@@ -396,8 +396,7 @@ zc.core_forms = function(fn, args) {
                  [">=",">="],
                  ["=","=="],
                  ["and","&&"],
-                 ["or","||"],
-                 ["modulo","%"]];
+                 ["or","||"]];
 
     for (var i=0; i<infix.length; i++) {
         if (fn == infix[i][0]) return zc.infixify(infix[i][1],args);
