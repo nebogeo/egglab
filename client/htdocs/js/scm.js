@@ -284,6 +284,9 @@ zc.core_forms = function(fn, args) {
             "return _list_replace;\n})()\n";
     }
 
+    // todo - call functions here!
+    // todo - make general for multiple lists as input
+
     // iterative build-list version for optimisation
     if (fn == "build_list") {
         if (zc.check(fn,args,2,2))
@@ -576,3 +579,10 @@ function init(filename) {
     function(/* function FrameRequestCallback */ callback, /* DOMElement Element */ element) {
     window.setTimeout(callback, 1000/60);    };
     })();
+
+// I found it on the internet...
+function getURLParameter(name) {
+    return decodeURI(
+        (RegExp(name + '=' + '(.+?)(&|$)').exec(location.search)||[,null])[1]
+    );
+}

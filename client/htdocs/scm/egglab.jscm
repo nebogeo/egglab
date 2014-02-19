@@ -932,7 +932,7 @@
       (lambda (c)
         (nightjar-best c)))
      (image-button
-      "Family Tree" 1050 720 #f (find-image "button.png")
+      "Family Tree" 1150 520 #f (find-image "button.png")
       (lambda (c)
         (server-call-mutate
          "family-tree"

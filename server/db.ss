@@ -22,7 +22,10 @@
 (define (setup db)
   (exec/ignore db "create table egg ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, player_id integer, fitness real, individual_fitness real, generation integer, parent integer, image varchar, genotype varchar )")
   (exec/ignore db "create table player ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, name varchar, average_score real, played_before integer, age_range integer )")
-  (exec/ignore db "create table stats ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)"))
+  (exec/ignore db "create table stats ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)")
+  (exec/ignore db "create table egghunt ( id integer primary key autoincrement, background varchar, challenger varchar, message varchar, score integer, timestamp varchar)")
+  (exec/ignore db "create table egghunt_egg ( id integer primary key autoincrement, egghunt_id integer, egg_id integer, x integer, y integer)")
+  )
 
 (define (insert-egg db population replicate time-stamp player-id fitness
                     individual-fitness generation parent image genotype)
@@ -42,6 +45,16 @@
   (insert
    db "insert into stats values (NULL, ?, ?, ?, ?, ?, ?, ?)"
    population replicate time-stamp egg-count av-fitness max-fitness min-fitness))
+
+(define (insert-egghunt db background challenger message score)
+  (insert
+   db "insert into egghunt values (NULL, ?, ?, ?, ?, ?)"
+   background challenger message score (timestamp-now)))
+
+(define (insert-egghunt-egg db egghunt-id egg-id x y)
+  (insert
+   db "insert into egghunt_egg values (NULL, ?, ?, ?, ?)"
+   egghunt-id egg-id x y))
 
 (define (ms->frac ms)
   (modulo (inexact->exact (round ms)) 1000))
@@ -154,6 +167,39 @@
                  (vector-ref i 2)
                  (vector-ref i 3)))
          (cdr s)))))
+
+
+(define (get-egghunt db egghunt-id)
+  (let ((s (select
+            db (string-append
+                "select h.background, h.challenger, h.message from egghunt as h "
+                "where h.id = ?")
+            egghunt-id)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0)
+                 (vector-ref i 1)
+                 (vector-ref i 2)))
+         (cdr s)))))
+
+(define (get-egghunt-eggs db egghunt-id)
+  (let ((s (select
+            db (string-append
+                "select egg.genotype, e.x, e.y from egghunt_egg as e "
+                "join egg as egg on egg.id = e.egg_id "
+                "where e.egghunt_id = ?")
+            egghunt-id)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0)
+                 (vector-ref i 1)
+                 (vector-ref i 2)))
+         (cdr s)))))
+
 
 (define (open-db db-name)
   (if (file-exists? (string->path db-name))
