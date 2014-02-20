@@ -632,6 +632,13 @@
      (let ((m (touch-from-event game canvas e)))
        (set! game (game-mouse-up game (car m) (cadr m))))))
 
+  (canvas.addEventListener
+   "touchcancel"
+   (lambda (e)
+     (let ((m (touch-from-event game canvas e)))
+       (set! game (game-mouse-up game (car m) (cadr m))))))
+
+
   (msg "building game")
   ;; todo - pass in game specific func
   (set! game (nightjar-intro (make-new-game)))
