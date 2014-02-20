@@ -414,7 +414,7 @@
     (draggable-modify-x
      (draggable-modify-y
       b (if (eq? (draggable-type b) "horizontal")
-            0 (- my (/ drawable.height 2))))
+            (draggable-y b) (- my (/ drawable.height 2))))
      (- mx (/ drawable.width 2)))))
 
 (define (draggables-update-children e mx my l)

@@ -191,7 +191,7 @@
              (game-modify-draggables
               (cons
                (draggable-horizontal
-                120 100
+                120 350
                 (find-image (list-ref egghuntbgs 0))
                 (lambda (c) c))
                (index-map
@@ -212,8 +212,6 @@
 (define (nightjar-instructions c)
   (game-modify-render
    (lambda (ctx)
-     (ctx.drawImage (find-image (list-ref egghuntbgs (egghunt-image-index (game-data c))) -50 -60)
-                    120 100)
      (draw-decoration ctx)
      (ctx.drawImage (find-image "ren.png") 300 430)
      (ctx.drawImage (find-image "bubble.png") 500 230)
