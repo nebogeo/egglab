@@ -625,6 +625,7 @@
   (canvas.addEventListener
    "touchend"
    (lambda (e)
+     (alert e)
      (let ((m (mouse-from-event game canvas e)))
        (set! game (game-mouse-up game (car m) (cadr m))))))
 
