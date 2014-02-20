@@ -589,6 +589,10 @@
             (- (/ (- e.clientY rect.top) sy)
                (cadr (game-world-offset g)))))))
 
+(define (touch-from-event g canvas e)
+  (let ((e (car e.targetTouches)))
+    (mouse-from-event g canvas e)))
+
 (define (start-game canvas ctx)
   (ctx.clearRect 0 0 screen-width screen-height)
 
@@ -601,7 +605,7 @@
   (canvas.addEventListener
    "touchstart"
    (lambda (e)
-     (let ((m (mouse-from-event game canvas e)))
+     (let ((m (touch-from-event game canvas e)))
        (set! game (game-mouse-down game (car m) (cadr m))))))
 
   (canvas.addEventListener
@@ -613,8 +617,7 @@
   (canvas.addEventListener
    "touchmove"
    (lambda (e)
-     (alert e)
-     (let ((m (mouse-from-event game canvas e)))
+     (let ((m (touch-from-event game canvas e)))
        (set! game (game-mouse-move game (car m) (cadr m))))))
 
   (canvas.addEventListener
@@ -626,7 +629,7 @@
   (canvas.addEventListener
    "touchend"
    (lambda (e)
-     (let ((m (mouse-from-event game canvas e)))
+     (let ((m (touch-from-event game canvas e)))
        (set! game (game-mouse-up game (car m) (cadr m))))))
 
   (msg "building game")
