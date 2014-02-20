@@ -630,14 +630,12 @@
   (canvas.addEventListener
    "touchend"
    (lambda (e)
-     (let ((m (touch-from-event game canvas e)))
-       (set! game (game-mouse-up game (car m) (cadr m))))))
+     (set! game (game-mouse-up game 0 0))))
 
   (canvas.addEventListener
    "touchcancel"
    (lambda (e)
-     (let ((m (touch-from-event game canvas e)))
-       (set! game (game-mouse-up game (car m) (cadr m))))))
+     (set! game (game-mouse-up game 0 0))))
 
 
   (msg "building game")
