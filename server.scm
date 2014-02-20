@@ -151,8 +151,8 @@
         (insert-egghunt-egg db id egg2 x2 y2)
         (insert-egghunt-egg db id egg3 x3 y3)
         (insert-egghunt-egg db id egg4 x4 y4)
-        (insert-egghunt-egg db id egg5 x5 y5))
-      (pluto-response (scheme->json '("id" id)))))
+        (insert-egghunt-egg db id egg5 x5 y5)
+        (pluto-response (scheme->json (list "id" id))))))
 
    (register
     (req 'getegghunt '(id))

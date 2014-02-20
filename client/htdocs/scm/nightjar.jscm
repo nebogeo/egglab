@@ -145,6 +145,8 @@
 ;; ----------------------------------------
 ;; button stuff
 
+;; todo, replace buttons with draggables, and fix parenting etc
+
 (define (rect-button name x y w h jitter callback)
       (list "rect-button" name x y w h
             jitter callback #f (rndf)))
@@ -361,7 +363,20 @@
         drawable.height
         drawable
         #f
-        callback))
+        ()
+        callback
+        "normal"))
+
+(define (draggable-horizontal x y drawable callback)
+  (list (- x (/ drawable.width 2))
+        (- y (/ drawable.height 2))
+        drawable.width
+        drawable.height
+        drawable
+        #f
+        ()
+        callback
+        "horizontal"))
 
 (define (draggable-x b) (list-ref b 0))
 (define (draggable-modify-x b v) (list-replace b 0 v))
@@ -372,7 +387,14 @@
 (define (draggable-drawable b) (list-ref b 4))
 (define (draggable-state b) (list-ref b 5))
 (define (draggable-modify-state b v) (list-replace b 5 v))
-(define (draggable-callback b) (list-ref b 6))
+(define (draggable-children b) (list-ref b 6))
+(define (draggable-modify-children b v) (list-replace b 6 v))
+(define (draggable-callback b) (list-ref b 7))
+(define (draggable-type b) (list-ref b 8))
+
+(define (draggable-inside? d x y)
+  (in-rect? (draggable-x d) (draggable-y d)
+            (draggable-w d) (draggable-h d) x y))
 
 (define (draggable-render! ctx t b)
   (ctx.save)
@@ -380,62 +402,75 @@
   (ctx.drawImage
    (draggable-drawable b)
    0 0)
+  (for-each
+   (lambda (child)
+     (draggable-render! ctx t child))
+   (draggable-children b))
   (ctx.restore))
 
 (define (draggable-move! b mx my)
+  (msg (list (draggable-x b) (draggable-y b)))
   (let ((drawable (draggable-drawable b)))
     (draggable-modify-x
      (draggable-modify-y
-      b (- my (/ drawable.height 2)))
+      b (if (eq? (draggable-type b) "horizontal")
+            0 (- my (/ drawable.height 2))))
      (- mx (/ drawable.width 2)))))
 
+(define (draggables-update-children e mx my l)
+  (define found (js "false")) ;; giving up...
+  (let ((r (map
+            (lambda (d)
+              (if (not found)
+                  (let ((result (draggable-update d e mx my)))
+                    (set! found (car result))
+                    (cadr result))
+                  d))
+            l)))
+    (list found r)))
+
+
 ;; returns a modified draggable
+;; includes updating all children, with early out
 (define (draggable-update b e mx my)
-  (cond
-   ((eq? e "down")
-    (if (in-rect? (draggable-x b) (draggable-y b)
-                  (draggable-w b) (draggable-h b)
-                  mx my)
-        (list #t (draggable-modify-state b #t))
-        (list #f b)))
-   ((and (eq? e "move") (draggable-state b))
-    (list #t (draggable-move! b mx my)))
-   ((and (eq? e "up") (draggable-state b))
-    (list #t (draggable-modify-state b #f)))
-   (else (list #f b))))
+  (let ((child-update (draggables-update-children
+                       e
+                       (- mx (draggable-x b))
+                       (- my (draggable-y b))
+                       (draggable-children b))))
+    (cond
+     ((eq? (car child-update) #t)
+      (list #t (draggable-modify-children b (cadr child-update))))
+     ((eq? e "down")
+      (if (in-rect? (draggable-x b) (draggable-y b)
+                    (draggable-w b) (draggable-h b)
+                    mx my)
+          (list #t (draggable-modify-state b #t))
+          (list #f b)))
+     ((and (eq? e "move") (draggable-state b))
+      (list #t (draggable-move! b mx my)))
+     ((and (eq? e "up") (draggable-state b))
+      (list #t (draggable-modify-state b #f)))
+     (else (list #f b)))))
 
-;; returns an updated world on mouse up - call before draggable-update
-(define (draggable-update-world b e mx my c)
-  (if (draggable-state b)
-      (let ((fn (draggable-callback b)))
-        (list #t (fn c)))
-      (list #f c)))
-
-(define (draggables-inner-update-world b e mx my c)
-  (foldl
-   (lambda (b r)
-     (if (not (car r)) ;; if event not handled
-         (draggable-update b e mx my (cadr r))
-         (js "r")))
-   (list #f c)
-   b))
-
-(define (draggables-update-world b e mx my c)
-  (let ((r (draggables-inner-update b e mx my c)))
-    (cadr r)))
+(define (draggables-update-list e mx my l)
+  (define found (js "false")) ;; giving up...
+  (map
+   (lambda (d)
+     (if (not found)
+         (let ((result (draggable-update d e mx my)))
+           (set! found (car result))
+           (cadr result))
+         d))
+   l))
 
 (define (draggables-update e mx my c)
-  (define found (js "false")) ;; giving up...
+  (let ((c
+         (if (and (> (length (game-draggables c)) 0) (eq? e "up"))
+             (game-modify-draggables (draggables-check-ownership (game-draggables c)) c)
+             c)))
   (game-modify-draggables
-   (map
-    (lambda (d)
-      (if (not found)
-          (let ((result (draggable-update d e mx my)))
-            (set! found (car result))
-            (cadr result))
-          d))
-    (game-draggables c))
-   c))
+   (draggables-update-list e mx my (game-draggables c)) c)))
 
 (define (draggables-render! ctx t b)
   (for-each
@@ -443,6 +478,38 @@
      (draggable-render! ctx t b))
    b))
 
+;; fixup coords for position in parent
+(define (draggable-attach d p)
+  (let ((x (- (draggable-x d) (draggable-x p)))
+        (y (- (draggable-y d) (draggable-y p))))
+    (msg (list x y))
+    (draggable-modify-x
+     (draggable-modify-y d y) x)))
+
+;; a simple drag-drop parenting arrangement
+;; check first draggable and add from remaining
+;; when inside
+(define (draggables-check-ownership l)
+  (cons
+   (draggable-modify-children
+    (car l)
+    (append
+     (draggable-children (car l))
+     (map
+      (lambda (attached)
+        (draggable-attach attached (car l)))
+      (filter
+       (lambda (c)
+         (draggable-inside?
+          (car l) (draggable-x c)
+          (draggable-y c)))
+       (cdr l)))))
+   (filter
+    (lambda (c)
+      (not (draggable-inside?
+            (car l) (draggable-x c)
+            (draggable-y c))))
+    (cdr l))))
 
 ;; ----------------------------------------
 

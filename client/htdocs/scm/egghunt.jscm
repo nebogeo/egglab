@@ -189,13 +189,18 @@
          (lambda (c data)
            (let ((e (JSON.parse data)))
              (game-modify-draggables
-              (index-map
-               (lambda (i egg)
-                 (draggable
-                  (+ 400 (* i 100)) 750
-                  (egg-drawable (JSON.parse (car egg)))
-                  (lambda (c) c)))
-               e)
+              (cons
+               (draggable-horizontal
+                120 100
+                (find-image (list-ref egghuntbgs 0))
+                (lambda (c) c))
+               (index-map
+                (lambda (i egg)
+                  (draggable
+                   (+ 400 (* i 100)) 750
+                   (egg-drawable (JSON.parse (car egg)))
+                   (lambda (c) c)))
+                e))
               (nightjar-instructions
                (game-modify-data
                 (lambda (d) (make-egghunt 2 (map (lambda (egg) (list-ref egg 3)) e)))
@@ -249,67 +254,72 @@
     c)))
 
 (define (nightjar-egghunt-builder c)
-  (game-modify-render
-   (lambda (ctx)
-     (ctx.drawImage (find-image (list-ref egghuntbgs (egghunt-image-index (game-data c))) -50 -60)
-                    120 100)
-     (draw-decoration ctx)
-     (ctx.drawImage (find-image "ner.png") 1000 600)
-     (set! ctx.font "normal 15pt 'Press Start 2P'"))
+  (game-modify-update
+   (lambda (t c)
+     c)
+
+   (game-modify-render
+    (lambda (ctx)
+      (draw-decoration ctx)
+      (ctx.drawImage (find-image "ner.png") 1000 600)
+      (set! ctx.font "normal 15pt 'Press Start 2P'"))
+
+    (game-modify-buttons
+     (list
+      (image-button
+       "" 50 400 "none" (find-image "left.png")
+       (lambda (c)
+         (game-modify-data
+          (lambda (d)
+            (egghunt-modify-image-index
+             d (modulo (- (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
+          c)))
+
+      (image-button
+       "" 1180 400 "none" (find-image "right.png")
+       (lambda (c)
+         (game-modify-data
+          (lambda (d)
+            (egghunt-modify-image-index
+             d (modulo (+ (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
+          c)))
+
+      (image-button
+       "Send" 70 700 "flashy" (find-image "egg.png")
+       (lambda (c)
+         (server-call-mutate
+          "addegghunt"
+          (list (list "background" (list-ref egghuntbgs (egghunt-image-index (game-data c))))
+                (list "challenger" "?")
+                (list "message" "?")
+                (list "egg1" (list-ref (egghunt-egg-ids (game-data c)) 0))
+                (list "x1" (draggable-x (list-ref (game-draggables c) 0)))
+                (list "y1" (draggable-y (list-ref (game-draggables c) 0)))
+                (list "egg2" (list-ref (egghunt-egg-ids (game-data c)) 1))
+                (list "x2" (draggable-x (list-ref (game-draggables c) 1)))
+                (list "y2" (draggable-y (list-ref (game-draggables c) 1)))
+                (list "egg3" (list-ref (egghunt-egg-ids (game-data c)) 2))
+                (list "x3" (draggable-x (list-ref (game-draggables c) 2)))
+                (list "y3" (draggable-y (list-ref (game-draggables c) 2)))
+                (list "egg4" (list-ref (egghunt-egg-ids (game-data c)) 3))
+                (list "x4" (draggable-x (list-ref (game-draggables c) 3)))
+                (list "y4" (draggable-y (list-ref (game-draggables c) 3)))
+                (list "egg5" (list-ref (egghunt-egg-ids (game-data c)) 4))
+                (list "x5" (draggable-x (list-ref (game-draggables c) 4)))
+                (list "y5" (draggable-y (list-ref (game-draggables c) 4))))
+
+          (lambda (c data)
+            (let ((e (JSON.parse data)))
+              (msg data)
+              (window.prompt "Copy to clipboard: Ctrl+C, Enter"
+                             (string-append
+                              "localhost:8000/egghunt-challenge.html?egghunt="
+                              (cadr e)))
+              c)))
+         c))
 
 
-   (game-modify-buttons
-    (list
-     (image-button
-      "" 50 400 "none" (find-image "left.png")
-      (lambda (c)
-        (game-modify-data
-         (lambda (d)
-           (egghunt-modify-image-index
-            d (modulo (- (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
-         c)))
-
-     (image-button
-      "" 1180 400 "none" (find-image "right.png")
-      (lambda (c)
-        (game-modify-data
-         (lambda (d)
-           (egghunt-modify-image-index
-            d (modulo (+ (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
-         c)))
-
-     (image-button
-      "Send" 70 700 "flashy" (find-image "egg.png")
-      (lambda (c)
-        (server-call-mutate
-         "addegghunt"
-         (list (list "background" (list-ref egghuntbgs (egghunt-image-index (game-data c))))
-               (list "challenger" "?")
-               (list "message" "?")
-               (list "egg1" (list-ref (egghunt-egg-ids (game-data c)) 0))
-               (list "x1" (draggable-x (list-ref (game-draggables c) 0)))
-               (list "y1" (draggable-y (list-ref (game-draggables c) 0)))
-               (list "egg2" (list-ref (egghunt-egg-ids (game-data c)) 1))
-               (list "x2" (draggable-x (list-ref (game-draggables c) 1)))
-               (list "y2" (draggable-y (list-ref (game-draggables c) 1)))
-               (list "egg3" (list-ref (egghunt-egg-ids (game-data c)) 2))
-               (list "x3" (draggable-x (list-ref (game-draggables c) 2)))
-               (list "y3" (draggable-y (list-ref (game-draggables c) 2)))
-               (list "egg4" (list-ref (egghunt-egg-ids (game-data c)) 3))
-               (list "x4" (draggable-x (list-ref (game-draggables c) 3)))
-               (list "y4" (draggable-y (list-ref (game-draggables c) 3)))
-               (list "egg5" (list-ref (egghunt-egg-ids (game-data c)) 4))
-               (list "x5" (draggable-x (list-ref (game-draggables c) 4)))
-               (list "y5" (draggable-y (list-ref (game-draggables c) 4))))
-
-         (lambda (c data)
-           (let ((e (JSON.parse data)))
-             (msg data)
-             c)))
-        c))
-
-
-     ) c)))
+      ) c))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
