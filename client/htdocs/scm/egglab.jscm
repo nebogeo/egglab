@@ -19,7 +19,7 @@
 
 (define num-eggs-total 15)
 (define num-eggs-from-population 14)
-(define num-best-eggs 50)
+(define num-best-eggs (* 12 4))
 (define egg-complexity 6)
 (define selection-pop-size 256)
 
@@ -165,9 +165,9 @@
      (let ((program (car sample))
            (fitness (cadr sample))
            (id (list-ref sample 2)))
-     (let ((x (modulo i 10)) (y (Math.floor (/ i 10))))
-       (let ((xx (+ 200 (* x 90)))
-             (yy (+ 260 (* y 120))))
+     (let ((x (modulo i 12)) (y (Math.floor (/ i 12))))
+       (let ((xx (+ 100 (* x 90)))
+             (yy (+ 100 (* y 120))))
          (list
           (make-individual
            id
@@ -344,26 +344,183 @@
 (define (egglab-data-player-time d) (list-ref d 7))
 (define (egglab-data-modify-player-time d v) (list-replace d 7 v))
 
+(define robo-state "none")
+(define robo-t 0)
+(define robo-image "ren.png")
+
+;; state machine... wow could make a very nice abstraction of this for animation
+;; and take up a tenth of the space... todododododo
+(define (robo-state-machine)
+  (set! robo-image "ren.png")
+  (cond
+   ((and (eq? robo-state "none") (< (rndf) 0.002))
+    (set! robo-t 0)
+    (set! robo-state "blink1"))
+   ((and (eq? robo-state "none") (< (rndf) 0.002))
+    (set! robo-t 0)
+    (set! robo-state "stamp1"))
+   ((eq? robo-state "blink1")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "blink2")))
+   ((eq? robo-state "blink2")
+    (set! robo-image "ren-eye2.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "blink3")))
+   ((eq? robo-state "blink3")
+    (set! robo-image "ren-eye3.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "none")))
+
+   ((eq? robo-state "stamp1")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state "stamp2")))
+   ((eq? robo-state "stamp2")
+    (set! robo-image "ren-leg1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state (if (< (rndf) 0.5) "stamp3a" "stamp3b"))))
+   ((eq? robo-state "stamp3a")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state "stamp4")))
+   ((eq? robo-state "stamp3b")
+    (set! robo-image "ren.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state "stamp4")))
+   ((eq? robo-state "stamp4")
+    (set! robo-image "ren-leg2.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (if (< (rndf) 0.25)
+              (set! robo-state "stamp5")
+              (set! robo-state "stamp1"))))
+   ((eq? robo-state "stamp5")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "none")))
+   (else 0)))
+
+
+(define (robo-nightjar-says ctx size text)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) 300 430)
+  (ctx.drawImage (find-image "bubble.png") 500 230)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text 50 270 300 size+12)
+  (set! ctx.font "normal 15pt 'Press Start 2P'")
+  (set! ctx.fillStyle "#fff"))
+
+(define (robo-nightjar-bot-right ctx)
+  (robo-state-machine)
+  (ctx.save)
+  (ctx.scale -1 1)
+  (ctx.drawImage (find-image robo-image) -1200 530)
+  (ctx.restore))
+
+(define (robo-nightjar-bot-left ctx)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) 50 580))
+
+(define (robo-nightjar-says-bottom ctx size text)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) 50 580)
+  (ctx.drawImage (find-image "bubble2.png") 360 640)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text -10 670 350 size+8)
+  (set! ctx.font "normal 15pt 'Press Start 2P'")
+  (set! ctx.fillStyle "#fff"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (nightjar-intro c)
-  (game-modify-render
-   (lambda (ctx)
-     (ctx.drawImage (find-image "eggs.jpg") 0 0)
-     (set! ctx.font "normal 70pt 'Press Start 2P'")
-     (wrap-text ctx "EGGLAB" 0 200 1000 1000)
-     (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (wrap-text ctx "Evolve egg patterns for science!" 0 250 1000 50)
-     (set! ctx.font "normal 15pt 'Press Start 2P'"))
+  (let ((icon-x 150)
+        (icon-y 520))
+    (game-modify-render
+     (lambda (ctx)
+       (ctx.drawImage (find-image "eggs.jpg") 0 0)
+       (set! ctx.font "normal 70pt 'Press Start 2P'")
+
+       (robo-nightjar-says ctx 22 "Search for my artificial eggs and help ecology & camouflage research!" 1)
+       (set! ctx.font "normal 40pt 'Press Start 2P'")
+       (wrap-text ctx "Easter Robot Nightjar says:" 0 160 1000 50)
+       (set! ctx.font "normal 15pt 'Press Start 2P'")
+       (set! ctx.globalAlpha 0.8)
+       (set! ctx.fillStyle "#ffffff")
+       (ctx.fillRect 0 (+ icon-y 140) 1500 100)
+       (set! ctx.globalAlpha 1))
    (game-modify-buttons
     (list
      (image-button
-      "Click to continue!"
-      (/ screen-width 2) 700
-      "flashy" (find-image "button.png")
+      ""
+      800 430
+      "rotate" (find-image "yes.png")
       (lambda (c)
-        (nightjar-choose-location c))))
-    c)))
+        (nightjar-menu c)))
+
+      (image-button
+       "" (+ icon-x 0) (+ icon-y 190) #f (find-image "sensory-ecology.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.sensoryecology.com/")
+         c))
+
+      (image-button
+       "" (+ icon-x 130) (+ icon-y 190) #f (find-image "cuckoos.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www2.zoo.cam.ac.uk/africancuckoos/home.html")
+         c))
+
+      (image-button
+       "" (+ icon-x 290) (+ icon-y 200) #f (find-image "exeter.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.exeter.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 470) (+ icon-y 190) #f (find-image "cu.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.zoo.cam.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 690) (+ icon-y 190) #f (find-image "bbsrc.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.bbsrc.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 900) (+ icon-y 190) #f (find-image "foam.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://fo.am")
+         c))
+
+     )
+    c))))
 
 (define (bg-full-path path fn)
   (string-append "/bg/" path "/" fn))
@@ -382,27 +539,58 @@
         fullpath)))
    (shuffle l)))
 
+(define (nightjar-menu c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (wrap-text ctx "Main menu" 0 100 1000 1000)
+     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (set! ctx.fillStyle "#000")
+     (robo-nightjar-bot-right ctx))
+
+   (game-modify-buttons
+    (list
+
+     (image-button
+      "Discover new patterns" 600 200 "slidy" (find-image "bigbutton-1.png")
+      (lambda (c) (nightjar-choose-location c)))
+
+     (image-button
+      "Challenge your friends" 600 400 "slidy" (find-image "bigbutton-2.png")
+      (lambda (c)
+        (set! window.location "egghunt.html")
+        (nightjar-choose-location c)))
+
+     (image-button
+      "Find out more" 600 600 "slidy" (find-image "bigbutton-1.png")
+      (lambda (c) (nightjar-about c)))
+
+     )
+    c)))
+
 (define (nightjar-choose-location c)
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (wrap-text ctx "Choose your nightjar species" 0 100 1000 1000)
-     (set! ctx.font "normal 15pt 'Press Start 2P'"))
+     (wrap-text ctx "Discover new patterns" 0 100 1000 1000)
+     (robo-nightjar-says-bottom ctx 20 "Choose which species' nest sites you want to try - I have different eggs for each.")
+     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (ctx.drawImage (find-image "cf.png") 0 120)
+     (ctx.drawImage (find-image "mv.png") 405 120)
+     (ctx.drawImage (find-image "cp.png") 830 120)
+     (set! ctx.fillStyle "#000")
+     )
 
    (game-modify-buttons
     (list
 
     (image-button
-     "About" 1000 720 "jumpy" (find-image "button.png")
-     (lambda (c) (nightjar-about c)))
-
-    (image-button
      "Back" 1150 720 "jumpy" (find-image "button.png")
-     (lambda (c) (nightjar-intro c)))
+     (lambda (c) (nightjar-menu c)))
 
     (image-button
       "Mozambique" 200 500
-      "jumpy" (find-image "cf.png")
+      "slidy" (find-image "medbutton-1.png")
       (lambda (c)
         (async-load-images c "CF" cf_images)
         (nightjar-env
@@ -412,7 +600,7 @@
 
     (image-button
      "Pennant-winged" 605 500
-     "jumpy" (find-image "mv.png")
+     "slidy" (find-image "medbutton-1.png")
      (lambda (c)
        (async-load-images c "MV" mv_images)
        (nightjar-env
@@ -422,7 +610,7 @@
 
     (image-button
      "Fiery-necked" 1030 500
-     "jumpy" (find-image "cp.png")
+     "slidy" (find-image "medbutton-1.png")
      (lambda (c)
        (async-load-images c "CP" cp_images)
        (nightjar-env
@@ -461,19 +649,19 @@
       (wrap-text
        ctx (string-append "Nesting sites of the " nj) 0 100 1000 60)
       (set! ctx.font "normal 15pt 'Press Start 2P'")
-      (wrap-text
-       ctx "All you need to do is click on the eggs as soon as you see them. We use your timing information in order to find out about camouflage perception, by slowly making the eggs harder to spot."
-       0 300 1000 30)))
+      (robo-nightjar-bot-left ctx)
+      (set! ctx.fillStyle "#000")
+      ))
 
     (game-modify-buttons
      (list
       (image-button
-       "Play the game" (- (/ screen-width 2) 375) 500 "jumpy" (find-image "button.png")
+       "Play the game" 600 200 "slidy" (find-image "bigbutton-1.png")
        (lambda (c)
          (nightjar-research "flicker" c)))
 
       (image-button
-       "Top eggs" (- (/ screen-width 2) 125) 500 "jumpy" (find-image "button.png")
+       "Most difficult eggs found so far" 600 350 "slidy" (find-image "bigbutton-2.png")
        (lambda (c)
          (server-call-mutate
           "top-eggs"
@@ -500,7 +688,20 @@
          c))
 
       (image-button
-       "Hi Scores" (+ (/ screen-width 2) 125) 500 "jumpy" (find-image "button.png")
+        "Egg difficulty graph" 600 500 "slidy" (find-image "bigbutton-1.png")
+        (lambda (c)
+          (server-call-mutate
+           "get-stats"
+           (list
+            (list "population" (egglab-data-land (game-data c)))
+            (list "replicate" 0)
+            (list "count" 50))
+           (lambda (c data)
+             (nightjar-fit-graph (JSON.parse data) c)))
+          c))
+
+      (image-button
+       "Hi Scores list" 600 650 "slidy" (find-image "bigbutton-2.png")
        (lambda (c)
          (server-call-mutate
           "hiscores"
@@ -512,18 +713,6 @@
             (nightjar-hiscores (JSON.parse data) c)))
          c))
 
-       (image-button
-        "Fit graph" (+ (/ screen-width 2) 375) 500 "jumpy" (find-image "button.png")
-        (lambda (c)
-          (server-call-mutate
-           "get-stats"
-           (list
-            (list "population" (egglab-data-land (game-data c)))
-            (list "replicate" 0)
-            (list "count" 50))
-           (lambda (c data)
-             (nightjar-fit-graph (JSON.parse data) c)))
-          c))
 
 
       (image-button
@@ -536,6 +725,7 @@
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
+      (robo-nightjar-bot-left ctx)
       (let ((nj (cond ((eq? (egglab-data-land (game-data c)) "CF") "Mozambique Nightjar")
                       ((eq? (egglab-data-land (game-data c)) "CP") "Fiery-necked Nightjar")
                       ((eq? (egglab-data-land (game-data c)) "MV") "Pennant-winged Nightjar")
@@ -627,16 +817,19 @@
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
+      (robo-nightjar-says ctx 18 "Click on my eggs when you see them. Small timing differences help me to make better camouflage patterns.")
+
       (set! ctx.font "normal 30pt 'Press Start 2P'")
-      (wrap-text ctx "Ok to donate your game to science?" 0 200 1000 70)
+      (wrap-text ctx "Are you happy for us to use your timing information?" 0 100 1000 70)
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
 
     (game-modify-buttons
      (list
+
       (image-button
-       "Yes!" (- (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
+       "" 820 450 "rotate" (find-image "yes.png")
        (lambda (c)
-          (server-call-mutate
+         (server-call-mutate
           "sample"
           (list (list "population" (egglab-data-land (game-data c)))
                 (list "replicate" 0)
@@ -662,9 +855,10 @@
               c))))
           c))
 
-      (image-button
-       "No thanks" (+ (/ screen-width 2) 150) 400 "jumpy" (find-image "button.png")
-       (lambda (c) (nightjar-intro c))))
+     (image-button
+      "Back" 1150 720 "jumpy" (find-image "button.png")
+      (lambda (c) (nightjar-env c)))
+     )
 
      c))))
 
@@ -889,12 +1083,10 @@
    (lambda (t c) c)
    (game-modify-render
     (lambda (ctx)
-      (set! ctx.font "normal 30pt 'Press Start 2P'")
-      (wrap-text ctx "Top 50 eggs" 0 100 1000 1000)
       (set! ctx.font "normal 15pt 'Press Start 2P'")
-      (wrap-text
-       ctx "Click on an egg to see the program that creates it's pattern."
-       0 150 1000 30)
+      (robo-nightjar-says-bottom
+       ctx 20
+       "These are my best eggs for this species so far. Click on an egg to see how it's made.")
       (set! ctx.font "normal 10pt 'Press Start 2P'"))
 
     (game-modify-buttons
@@ -969,11 +1161,32 @@
  (append
   (list
    "button.png"
+   "bigbutton-1.png"
+   "bigbutton-2.png"
+   "medbutton-1.png"
    "egg.png"
    "cf.png"
    "cp.png"
    "mv.png"
-   "eggs.jpg")
+   "eggs.jpg"
+   "bubble.png"
+   "bubble2.png"
+   "ren.png"
+   "ren-eye1.png"
+   "ren-eye2.png"
+   "ren-eye3.png"
+   "ren-leg1.png"
+   "ren-leg2.png"
+   "ner.png"
+   "yes.png"
+   "no.png"
+   "bbsrc.png"
+   "cu.png"
+   "exeter.png"
+   "cuckoos.png"
+   "foam.png"
+   "sensory-ecology.png"
+   )
   egg-images)
  (lambda ()
    (start-game canvas ctx)))

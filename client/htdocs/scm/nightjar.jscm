@@ -198,7 +198,9 @@
                        (/ (button-h b) 2))
         (ctx.rotate (* 0.05 (Math.sin (+ (* (button-offs b) 10) (* t 0.01)))))
         (ctx.translate (- 0 (/ (button-w b) 2))
-                       (- 0 (/ (button-h b) 2)))))
+                       (- 0 (/ (button-h b) 2))))
+  (when (eq? (button-jitter b) "slidy")
+        (ctx.translate (* 2.5 (sin (+ (* (button-offs b) 10) (* t 0.004)))) 0)))
 
 
 (define (button-text-jumpy-render! b t)
@@ -226,7 +228,8 @@
 
 (define (text-flashy-render ctx txt x y t)
   (let ((m (ctx.measureText txt))
-        (cm (ctx.measureText "w")))
+        (cm 0)
+        (pos 0))
     (let ((ta (txt.split "")))
       (index-for-each
        (lambda (i c)
@@ -234,14 +237,16 @@
                               (* 256 (sin (+ (* t 0.001) i)))
                               (* 256 (sin (+ (* t 0.003) i)))
                               (* 256 (sin (+ (* t 0.004) i)))))
-
-         (ctx.fillText c (+ x (* i cm.width)) y))
+         (set! cm (ctx.measureText c))
+         (set! pos (+ pos cm.width))
+         (ctx.fillText c (+ x pos) y))
        ta))))
 
 (define (button-text-flashy-render! b t)
   (let ((m (ctx.measureText (button-name b)))
         (cm (ctx.measureText "w"))
-        (txt (button-name b)))
+        (txt (button-name b))
+        (pos 0))
     (let ((ta (txt.split ""))
           (x (- (/ (button-w b) 2) (/ m.width 2)))
           (y (+ (/ (button-h b) 2) 5)))
@@ -251,8 +256,9 @@
                               (* 256 (sin (+ (* t 0.001) i)))
                               (* 256 (sin (+ (* t 0.003) i)))
                               (* 256 (sin (+ (* t 0.004) i)))))
-
-         (ctx.fillText c (+ x (* i cm.width)) y))
+         (set! cm (ctx.measureText c))
+         (set! pos (+ pos cm.width))
+         (ctx.fillText c (+ x pos) y))
        ta))))
 
 (define (button-text-render! b t)
@@ -310,7 +316,6 @@
   (ctx.drawImage
    (button-drawable b)
    0 0)
-  (set! ctx.fillStyle "#fff")
   (button-text-render! b t)
   (ctx.restore))
 
@@ -628,14 +633,10 @@
        (set! game (game-mouse-up game (car m) (cadr m))))))
 
   (canvas.addEventListener
-   "touchend"
-   (lambda (e)
-     (set! game (game-mouse-up game 0 0))))
+   "touchend" (lambda (e) (set! game (game-mouse-up game 0 0))))
 
   (canvas.addEventListener
-   "touchcancel"
-   (lambda (e)
-     (set! game (game-mouse-up game 0 0))))
+   "touchcancel" (lambda (e) (set! game (game-mouse-up game 0 0))))
 
 
   (msg "building game")
