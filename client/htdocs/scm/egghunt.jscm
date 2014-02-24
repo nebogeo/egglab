@@ -16,7 +16,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define main-game-url "http://nightjar.exeter.ac.uk")
+(define main-game-url "http://nightjar.exeter.ac.uk/egglab")
 
 (define (make-egghunt image-index egg-ids)
   (list image-index egg-ids))
@@ -150,7 +150,7 @@
                 (msg data)
                 (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
                                (string-append
-                                "localhost:8000/egghunt-challenge.html?egghunt="
+                                main-game-url "/egghunt-challenge.html?egghunt="
                                 (cadr e)))
                 (nightjar-thanks c))))
            c)
