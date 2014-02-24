@@ -16,7 +16,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define main-game-url "http://localhost:8000")
+(define main-game-url "http://nightjar.exeter.ac.uk")
 
 (define (make-egghunt image-index egg-ids)
   (list image-index egg-ids))
