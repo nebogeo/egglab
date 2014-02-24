@@ -276,6 +276,11 @@ ditto.build_list_helper = function(len,fn) {
     return r;
 };
 
+ditto.list_replace_helper = function(l,index,val) {
+    l[index]=val;
+    return l;
+};
+
 ditto.core_forms = function(fn, args) {
     // core forms
     if (fn == "lambda") if (ditto.check(fn,args,2,-1)) return ditto.comp_lambda(args);
@@ -303,11 +308,10 @@ ditto.core_forms = function(fn, args) {
 
     if (fn == "list_replace") {
         if (ditto.check(fn,args,3,3))
-            return "(function() {"+
-            "var _list_replace="+ditto.comp(ditto.car(args))+"\n"+
-            "_list_replace["+ditto.comp(ditto.cadr(args))+"]="+
-            ditto.comp(ditto.caddr(args))+";\n"+
-            "return _list_replace;\n})()\n";
+            return "ditto.list_replace_helper("+
+            ditto.comp(ditto.car(args))+","+
+            ditto.comp(ditto.cadr(args))+","+
+            ditto.comp(ditto.caddr(args))+")";
     }
 
     // iterative build-list version for optimisation

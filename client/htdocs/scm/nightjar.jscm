@@ -14,6 +14,11 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;; a simple 2D game engine for making fast html5 canvas games
+
+;; --------------------------------------------
+;; server comms
+
 (js "$.ajaxSetup ({
     cache: false
 })")
@@ -40,6 +45,9 @@
       (v.fail (lambda (jqXHR textStatus errorThrown)
                 (msg textStatus)
                 (msg errorThrown))))))
+
+;; --------------------------------------------
+;; basics
 
 (define (transform x y r s) (list x y r s))
 
@@ -99,6 +107,7 @@
   (inner_find-image fn image-lib))
 
 ;; ----------------------------------------
+;; drawing helpers
 
 (define (fill-centre-text ctx txt x y)
   (let ((m (ctx.measureText txt)))
@@ -520,6 +529,7 @@
     (cdr l))))
 
 ;; ----------------------------------------
+;; main game structure
 
 (define (make-new-game)
   (list 0 (lambda (ctx) 0) (lambda (t c) c)
@@ -648,6 +658,8 @@
 (define (mutate-game f)
   (lambda (data)
     (set! game (f game data))))
+
+;; drawing utils (remove?)
 
 (define (nightjar-heading ctx txt)
   (set! ctx.fillStyle "#000")
