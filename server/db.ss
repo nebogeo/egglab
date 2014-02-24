@@ -61,7 +61,7 @@
 
 (define (timestamp-now)
   (let* ((ms (current-inexact-milliseconds))
-         (t (seconds->date (inexect->exact (round (/ ms 1000))))))
+         (t (seconds->date (inexact->exact (round (/ ms 1000))))))
     (string-append
      (number->string (date-year t)) "-"
      (substring (number->string (+ (date-month t) 100)) 1 3) "-"
