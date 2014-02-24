@@ -1,0 +1,264 @@
+;; -*- mode: scheme; -*-
+;; Egglab Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; genetic programming stuff
+
+(define egg-complexity 6)
+
+(define egg-images
+  (build-list 24 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
+
+(define (transform x y r s) (list x y r s))
+
+(define (transform-x t) (list-ref t 0))
+(define (transform-y t) (list-ref t 1))
+(define (transform-rotate t) (list-ref t 2))
+(define (transform-scale t) (list-ref t 3))
+
+(define (transform-mutate t r)
+  (transform
+   (modulo (+ (transform-x t) (* (rndf) 10 r)) 127)
+   (modulo (+ (transform-y t) (* (rndf) 10 r)) 127)
+   (choose (list 0 (/ 6.282 4)))
+   1))
+
+(define (make-terminal)
+  (list
+   "terminal"
+   (transform (random 127) (random 127) (choose (list 0 (/ 6.282 4))) 1)
+   (choose egg-images)))
+
+(define (program-type t) (list-ref t 0))
+(define (terminal-transform t) (list-ref t 1))
+(define (terminal-image t) (list-ref t 2))
+
+(define (terminal-mutate t r)
+  (list
+   "terminal"
+   (transform-mutate (terminal-transform t) r)
+   (if (> r (rndf))
+       (choose egg-images)
+       (terminal-image t))))
+
+(define blend-modes
+  ;; "safe" modes (browser consisitent)
+  (list "source-over"
+        "source-atop"
+        "destination-over"
+        "destination-out"
+        "lighter"
+        "xor"))
+
+(define (make-operator a b)
+  (list "op" (choose blend-modes) a b))
+
+(define (operator-type t) (list-ref t 1))
+(define (operator-operand-a t) (list-ref t 2))
+(define (operator-operand-b t) (list-ref t 3))
+
+(define (operator-mutate t r)
+  (list
+   "op"
+   (if (> r (rndf)) (choose blend-modes) (operator-type t))
+   (egg-mutate (operator-operand-a t) r)
+   (egg-mutate (operator-operand-b t) r)))
+
+(define (make-random-egg depth)
+  (if (or (zero? depth) (< (random 10) 2))
+      (make-terminal)
+      (make-operator (make-random-egg (- depth 1))
+                     (make-random-egg (- depth 1)))))
+
+(define (egg-mutate egg r)
+  (if (eq? (program-type egg) "terminal")
+      (terminal-mutate egg r)
+      (operator-mutate egg r)))
+
+(define (egg-drawable program rotate)
+  (let ((tcanvas (document.createElement "canvas")))
+    (set! tcanvas.width 128)
+    (set! tcanvas.height 128)
+    (let ((tctx (tcanvas.getContext "2d")))
+      (when rotate
+            (tctx.translate 64 64)
+            (tctx.rotate (* (rndf) 2 Math.PI))
+            (tctx.translate -64 -64))
+      (draw-egg tctx program)
+      (set! tctx.globalCompositeOperation "destination-atop")
+      (tctx.drawImage (find-image "egg.png") 0 0)
+      tcanvas)))
+
+(define (draw-terminal ctx program)
+  (ctx.save)
+  (set! ctx.fillStyle
+        (ctx.createPattern
+         (find-image (terminal-image program) image-lib) "repeat"))
+
+  (ctx.translate 64 64)
+  (ctx.rotate (transform-rotate (terminal-transform program)))
+  (ctx.translate -64 -64)
+
+  (ctx.translate (transform-x (terminal-transform program))
+                 (transform-y (terminal-transform program)))
+  ;;        (ctx.scale (transform-scale (terminal-transform program))
+  ;;                   (transform-scale (terminal-transform program)))
+  (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
+                (- 0 (transform-y (terminal-transform program)))
+                (* 127 2) (* 127 2))
+  ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
+  ;;                   (/ 1 (transform-scale (terminal-transform program))))
+  ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
+  ;;               (- 0 (transform-y (terminal-transform program))))
+  (ctx.restore))
+
+(define (draw-op ctx program)
+  (let ((tcanvas (document.createElement "canvas")))
+    (set! tcanvas.width 128)
+    (set! tcanvas.height 128)
+    (let ((tctx (tcanvas.getContext "2d")))
+      (set! tctx.globalCompositeOperation "source-over")
+      (draw-egg tctx (operator-operand-a program))
+      (set! tctx.globalCompositeOperation (operator-type program))
+      (draw-egg tctx (operator-operand-b program))
+      (set! tctx.globalCompositeOperation "source-over")
+      (ctx.drawImage tcanvas 0 0))))
+
+(define (draw-egg ctx program)
+  (if (eq? (program-type program) "terminal")
+      (draw-terminal ctx program)
+      (draw-op ctx program)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; robo-nightjar drawing code
+
+
+(define robo-state "none")
+(define robo-t 0)
+(define robo-image "ren.png")
+
+;; state machine... wow could make a very nice abstraction of this for animation
+;; and take up a tenth of the space... todododododo
+(define (robo-state-machine)
+  (set! robo-image "ren.png")
+  (cond
+   ((and (eq? robo-state "none") (< (rndf) 0.002))
+    (set! robo-t 0)
+    (set! robo-state "blink1"))
+   ((and (eq? robo-state "none") (< (rndf) 0.002))
+    (set! robo-t 0)
+    (set! robo-state "stamp1"))
+   ((eq? robo-state "blink1")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "blink2")))
+   ((eq? robo-state "blink2")
+    (set! robo-image "ren-eye2.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "blink3")))
+   ((eq? robo-state "blink3")
+    (set! robo-image "ren-eye3.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "none")))
+
+   ((eq? robo-state "stamp1")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state "stamp2")))
+   ((eq? robo-state "stamp2")
+    (set! robo-image "ren-leg1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state (if (< (rndf) 0.5) "stamp3a" "stamp3b"))))
+   ((eq? robo-state "stamp3a")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state "stamp4")))
+   ((eq? robo-state "stamp3b")
+    (set! robo-image "ren.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (set! robo-state "stamp4")))
+   ((eq? robo-state "stamp4")
+    (set! robo-image "ren-leg2.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 30)
+          (set! robo-t 0)
+          (if (< (rndf) 0.25)
+              (set! robo-state "stamp5")
+              (set! robo-state "stamp1"))))
+   ((eq? robo-state "stamp5")
+    (set! robo-image "ren-eye1.png")
+    (set! robo-t (+ robo-t 1))
+    (when (> robo-t 100)
+          (set! robo-t 0)
+          (set! robo-state "none")))
+   (else 0)))
+
+
+(define (robo-nightjar-says ctx size text)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) 300 430)
+  (ctx.drawImage (find-image "bubble.png") 500 230)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text 50 270 300 size+12)
+  (set! ctx.font "normal 15pt 'Press Start 2P'")
+  (set! ctx.fillStyle "#fff"))
+
+(define (robo-nightjar-bot-right ctx)
+  (robo-state-machine)
+  (ctx.save)
+  (ctx.scale -1 1)
+  (ctx.drawImage (find-image robo-image) -1200 530)
+  (ctx.restore))
+
+(define (robo-nightjar-bot-left ctx)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) 50 580))
+
+(define (robo-nightjar-says-bottom ctx size text)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) 50 580)
+  (ctx.drawImage (find-image "bubble2.png") 360 640)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text -10 670 350 size+8)
+  (set! ctx.font "normal 15pt 'Press Start 2P'")
+  (set! ctx.fillStyle "#fff"))
+
+(define (robo-nightjar-says-bot-left ctx size text)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) -40 580)
+  (ctx.drawImage (find-image "bubble3.png") 260 590)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text -190 630 280 size+8)
+  (set! ctx.font "normal 15pt 'Press Start 2P'")
+  (set! ctx.fillStyle "#fff"))
