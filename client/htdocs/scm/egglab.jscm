@@ -21,6 +21,7 @@
 (define num-eggs-from-population 14)
 (define num-best-eggs (* 12 4))
 (define selection-pop-size 256)
+(define photo-time-allowed 10)
 
 (define (make-individual fitness ancestral-fitness generation parent drawable egg pos)
   (list fitness ancestral-fitness generation parent drawable egg pos))
@@ -182,7 +183,6 @@
      ancestors))
 
   (set! ctx.fillStyle "#fff"))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -786,6 +786,44 @@
   (egglab-data-modify-player-time
    d (/ (+ t (egglab-data-player-time d)) num-eggs-total)))
 
+(define (submit-egg-and-build-next egg c)
+  (server-call
+   "add"
+   (list
+    (list "population" (egglab-data-land (game-data c)))
+    (list "replicate" 0)
+    (list "player-id" 0)
+    (list "fitness" (+ (individual-ancestral-fitness egg) (time-elapsed c)))
+    (list "individual-fitness" (time-elapsed c))
+    (list "generation" (individual-generation egg))
+    (list "parent" (individual-parent egg))
+    (list "image" (car (egglab-data-images (game-data c))))
+    (list "genotype" (JSON.stringify (individual-egg egg)))))
+
+  (if (eq? (length (egglab-data-eggs (game-data c))) 1)
+      (game-modify-data
+       (lambda (d)
+         (egglab-finish-time (time-elapsed c) d))
+       (reset-images (nightjar-thanks c)))
+      (game-modify-buttons
+       (list
+        (flicker-build-egg
+         (game-modify-data
+          (lambda (d)
+            (egglab-add-time
+             (time-elapsed c)
+             (egglab-data-modify-images
+              (egglab-data-modify-offset
+               (egglab-data-modify-eggs
+                (egglab-data-modify-time
+                 d
+                 (game-time c))
+                (cdr (egglab-data-eggs d)))
+               (list 0 0))
+              (cdr (egglab-data-images d)))))
+          c)))
+       c)))
+
 (define (flicker-build-egg c)
   (let ((egg (car (egglab-data-eggs (game-data c)))))
     (let ((pos (individual-pos egg)))
@@ -794,55 +832,28 @@
        (individual-drawable egg)
        (lambda (c)
          ;;(play-sound "sounds/button.wav")
+         (submit-egg-and-build-next egg c))))))
 
-         (server-call
-          "add"
-          (list
-           (list "population" (egglab-data-land (game-data c)))
-           (list "replicate" 0)
-           (list "player-id" 0)
-           (list "fitness" (+ (individual-ancestral-fitness egg) (time-elapsed c)))
-           (list "individual-fitness" (time-elapsed c))
-           (list "generation" (individual-generation egg))
-           (list "parent" (individual-parent egg))
-           (list "image" (car (egglab-data-images (game-data c))))
-           (list "genotype" (JSON.stringify (individual-egg egg)))))
-
-         (if (eq? (length (egglab-data-eggs (game-data c))) 1)
-             (game-modify-data
-              (lambda (d)
-                (egglab-finish-time (time-elapsed c) d))
-              (reset-images (nightjar-thanks c)))
-             (game-modify-buttons
-              (list
-               (flicker-build-egg
-                (game-modify-data
-                 (lambda (d)
-                   (egglab-add-time
-                    (time-elapsed c)
-                    (egglab-data-modify-images
-                     (egglab-data-modify-offset
-                      (egglab-data-modify-eggs
-                       (egglab-data-modify-time
-                        d
-                        (game-time c))
-                            (cdr (egglab-data-eggs d)))
-                      (list 0 0))
-                     (cdr (egglab-data-images d)))))
-                 c)))
-              c)))))))
+(define (seconds-taken c)
+  (/ (time-elapsed c) 1000))
 
 (define (nightjar-flicker-game c)
-  (game-modify-render
-   (lambda (ctx)
-     (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))
-                    (- 0 (car (egglab-data-offset (game-data c))))
-                    (- 0 (cadr (egglab-data-offset (game-data c)))))
-     (set! ctx.font "normal 30pt 'Press Start 2P'"))
-   (game-modify-buttons
-    (list
-     (flicker-build-egg c))
-    c)))
+  (game-modify-update
+   (lambda (t c)
+     (if (> (seconds-taken c) photo-time-allowed)
+         (submit-egg-and-build-next (car (egglab-data-eggs (game-data c))) c)
+         c))
+   (game-modify-render
+    (lambda (ctx)
+      (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))
+                     (- 0 (car (egglab-data-offset (game-data c))))
+                     (- 0 (cadr (egglab-data-offset (game-data c)))))
+      (nightjar-draw-clock ctx (seconds-taken c) photo-time-allowed)
+      (set! ctx.font "normal 30pt 'Press Start 2P'"))
+    (game-modify-buttons
+     (list
+      (flicker-build-egg c))
+     c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

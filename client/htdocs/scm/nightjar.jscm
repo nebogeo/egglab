@@ -529,6 +529,37 @@
     (cdr l))))
 
 ;; ----------------------------------------
+;; draw a clock
+
+(define (stroke-clock ctx x y time max-time)
+  (ctx.beginPath)
+  (ctx.moveTo x y)
+  (ctx.arc
+   x y 50 (* Math.PI -0.5)
+   (+ (* Math.PI -0.5)
+      (/ (* time Math.PI 2) max-time))
+   true)
+  (ctx.closePath))
+
+(define (nightjar-draw-clock ctx time max-time)
+  (set! ctx.lineWidth 4)
+  (set! ctx.strokeStyle "#000")
+  (stroke-clock ctx 74 74 time max-time)
+  (ctx.stroke)
+
+  (stroke-clock ctx 70 70 time max-time)
+  (set! ctx.fillStyle "rgba(1, 0, 0, 0.7)")
+  (ctx.fill)
+  (set! ctx.lineWidth 4)
+  (set! ctx.strokeStyle "#f00")
+  (ctx.stroke)
+
+  (set! ctx.lineWidth 1)
+  (set! ctx.fillStyle "#fff")
+  (set! ctx.font "normal 30pt gnuolane")
+  (ctx.fillText (Math.floor (- max-time time)) 54 110))
+
+;; ----------------------------------------
 ;; main game structure
 
 (define (make-new-game)
