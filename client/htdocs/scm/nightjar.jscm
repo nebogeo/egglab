@@ -46,6 +46,9 @@
 (define (transform-x t) (list-ref t 0))
 (define (transform-y t) (list-ref t 1))
 
+(define (time-to-seconds t)
+  (/ (Math.floor (/ t 10)) 100))
+
 (define (play-sound sound)
  (let ((snd (new Audio sound)))
     (snd.play)))
@@ -638,8 +641,6 @@
   (canvas.addEventListener
    "touchcancel" (lambda (e) (set! game (game-mouse-up game 0 0))))
 
-
-  (msg "building game")
   ;; todo - pass in game specific func
   (set! game (nightjar-intro (make-new-game)))
   (requestAnimFrame top-render ctx))
@@ -665,8 +666,6 @@
 
 
 ;; ----------------------------------------
-
-(msg "started nightjar game")
 
 (define canvas (document.getElementById "canvas"))
 (define ctx (canvas.getContext "2d"))

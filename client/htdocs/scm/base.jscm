@@ -15,7 +15,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (define (msg a)
-  (display a)(newline))
+  (display a))
 
 (define (dbg a)
   (msg a) a)
@@ -85,8 +85,7 @@
   (js "((m%n)+n)%n"))
 
 (define display (lambda (str) (console.log str)))
-
-(define newline (lambda () (zc.to_page "output" "\n")))
+(define newline (lambda () (console.log "\n")))
 
 (define (sin a) (Math.sin a))
 (define (cos a) (Math.cos a))
@@ -183,7 +182,6 @@
 
 (define unit-test
   (lambda ()
-    (display "unit tests running...")
     (set! a 10)
     (when (not (eq? 4 4)) (display "eq? failed"))
     (when (eq? 2 4) (display "eq?(2) failed"))
@@ -219,7 +217,5 @@
     (when (not (eq? (cond (#t (+ 3 2) (+ 100 1)) (else (+ 4 3))) 101)) (display "cond test failed"))
     (when (not (eq? (when #t (+ 3 2) (+ 100 1)) 101)) (display "when test failed"))
     ))
-
-(display "base.scm starting up...")
 
 (unit-test)
