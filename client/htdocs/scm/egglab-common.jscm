@@ -20,7 +20,7 @@
 (define egg-complexity 6)
 
 (define egg-images
-  (build-list 24 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
+  (build-list 20 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
 
 (define (transform x y r s) (list x y r s))
 
@@ -36,32 +36,47 @@
    (choose (list 0 (/ 6.282 4)))
    1))
 
+;; a terminal can either be an image with a transform or a flat colour
 (define (make-terminal)
-  (list
-   "terminal"
-   (transform (random 127) (random 127) (choose (list 0 (/ 6.282 4))) 1)
-   (choose egg-images)))
+  (if (< (rndf) 0.5)
+      (list
+       "terminal"
+       "image"
+       (transform (random 127) (random 127) (choose (list 0 (/ 6.282 4))) 1)
+       (choose egg-images))
+      (list
+       "terminal"
+       "colour"
+       (list (random 256) (random 256) (random 256) (random 256)))))
 
 (define (program-type t) (list-ref t 0))
-(define (terminal-transform t) (list-ref t 1))
-(define (terminal-image t) (list-ref t 2))
+(define (terminal-type t) (list-ref t 1))
+(define (terminal-transform t) (list-ref t 2))
+(define (terminal-colour t) (list-ref t 2))
+(define (terminal-image t) (list-ref t 3))
+(define (terminal-colour t) (list-ref t 2))
 
 (define (terminal-mutate t r)
-  (list
-   "terminal"
-   (transform-mutate (terminal-transform t) r)
-   (if (> r (rndf))
-       (choose egg-images)
-       (terminal-image t))))
+  (if (eq? (terminal-type t) "image")
+      (list
+       "terminal" "image"
+       (transform-mutate (terminal-transform t) r)
+       (if (> r (rndf))
+           (choose egg-images)
+           (terminal-image t)))
+      (list "terminal" "colour"
+            (if (> r (rndf))
+                (list (random 256) (random 256) (random 256) (random 256))
+                (terminal-colour t)))))
 
 (define blend-modes
   ;; "safe" modes (browser consisitent)
   (list "source-over"
         "source-atop"
         "destination-over"
-        "destination-out"
         "lighter"
-        "xor"))
+        "xor"
+        ))
 
 (define (make-operator a b)
   (list "op" (choose blend-modes) a b))
@@ -103,34 +118,45 @@
       tcanvas)))
 
 (define (draw-terminal ctx program)
-  (ctx.save)
-  (set! ctx.fillStyle
-        (ctx.createPattern
-         (find-image (terminal-image program) image-lib) "repeat"))
+  (cond
+   ((eq? (terminal-type program) "image")
+    (ctx.save)
+    (set! ctx.fillStyle
+          (ctx.createPattern
+           (find-image (terminal-image program) image-lib) "repeat"))
 
-  (ctx.translate 64 64)
-  (ctx.rotate (transform-rotate (terminal-transform program)))
-  (ctx.translate -64 -64)
+    (ctx.translate 64 64)
+    (ctx.rotate (transform-rotate (terminal-transform program)))
+    (ctx.translate -64 -64)
 
-  (ctx.translate (transform-x (terminal-transform program))
-                 (transform-y (terminal-transform program)))
-  ;;        (ctx.scale (transform-scale (terminal-transform program))
-  ;;                   (transform-scale (terminal-transform program)))
-  (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
-                (- 0 (transform-y (terminal-transform program)))
-                (* 127 2) (* 127 2))
-  ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
-  ;;                   (/ 1 (transform-scale (terminal-transform program))))
-  ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
-  ;;               (- 0 (transform-y (terminal-transform program))))
-  (ctx.restore))
+    (ctx.translate (transform-x (terminal-transform program))
+                   (transform-y (terminal-transform program)))
+    ;;        (ctx.scale (transform-scale (terminal-transform program))
+    ;;                   (transform-scale (terminal-transform program)))
+    (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
+                  (- 0 (transform-y (terminal-transform program)))
+                  (* 127 2) (* 127 2))
+    ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
+    ;;                   (/ 1 (transform-scale (terminal-transform program))))
+    ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
+    ;;               (- 0 (transform-y (terminal-transform program))))
+    (ctx.restore))
+   (else
+    (begin
+      (set! ctx.fillStyle (string-append
+                           "rgba("
+                           (list-ref (terminal-colour program) 0) ","
+                           (list-ref (terminal-colour program) 1) ","
+                           (list-ref (terminal-colour program) 2) ","
+                           (/ (list-ref (terminal-colour program) 3) 256) ")"))
+      (ctx.fillRect 0 0 128 128)))))
+
 
 (define (draw-op ctx program)
   (let ((tcanvas (document.createElement "canvas")))
     (set! tcanvas.width 128)
     (set! tcanvas.height 128)
     (let ((tctx (tcanvas.getContext "2d")))
-      (set! tctx.globalCompositeOperation "source-over")
       (draw-egg tctx (operator-operand-a program))
       (set! tctx.globalCompositeOperation (operator-type program))
       (draw-egg tctx (operator-operand-b program))

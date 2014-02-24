@@ -238,6 +238,9 @@
 (define (rgb-to-hex r g b)
   (+ "#" (to-hex r) (to-hex g) (to-hex b)))
 
+(define (rgba-to-hex r g b a)
+  (+ "#" (to-hex r) (to-hex g) (to-hex b) (to-hex a)))
+
 (define (text-flashy-render ctx txt x y t)
   (let ((m (ctx.measureText txt))
         (cm 0)
