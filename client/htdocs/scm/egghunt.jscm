@@ -16,6 +16,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define main-game-url "http://localhost:8000")
+
 (define (make-egghunt image-index egg-ids)
   (list image-index egg-ids))
 
@@ -24,105 +26,58 @@
 (define (egghunt-egg-ids d) (list-ref d 1))
 (define (egghunt-modify-egg-ids d v) (list-replace d 1 v))
 
-(define (draw-decoration ctx)
-  (ctx.drawImage (find-image "eggrow.png") -50 0)
-  (ctx.drawImage (find-image "bottombar.png") -30 650)
-  (set! ctx.font "normal 20pt 'Press Start 2P'")
-  (set! ctx.fillStyle "#000")
-  (wrap-text ctx "Project Nightjar's Easter Egg Hunt Challenge" 10 60 1300 30))
-
-(define (draw-ren ctx text)
-  (ctx.drawImage (find-image "ren.png") 300 430)
-  (ctx.drawImage (find-image "bubble.png") 500 230)
-  (set! ctx.font "normal 18pt 'Press Start 2P'")
-  (wrap-text ctx text 50 270 300 25)
-  (set! ctx.font "normal 15pt 'Press Start 2P'")
-  (set! ctx.fillStyle "#fff"))
+(define (new-egghunt c)
+  (server-call-mutate
+   "sample"
+   (list (list "population" "CF")
+         (list "replicate" 0)
+         (list "count" 5)
+         (list "top" 100))
+   (lambda (c data)
+     (let ((e (JSON.parse data)))
+       (game-modify-draggables
+        (cons
+         (draggable-horizontal
+          120 300
+          (find-image (list-ref egghuntbgs 0))
+          (lambda (c) c))
+         (index-map
+          (lambda (i egg)
+            (draggable
+             (+ 640 (* i 100)) 720
+             (egg-drawable (JSON.parse (car egg)))
+             (lambda (c) c)))
+          e))
+        (nightjar-egghunt-builder
+         (game-modify-data
+          (lambda (d) (make-egghunt 0 (map (lambda (egg) (list-ref egg 3)) e)))
+          c))))))
+  c)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (nightjar-intro c)
   (game-modify-render
    (lambda (ctx)
-     (draw-decoration ctx)
-     (draw-ren ctx "Hi, I'm a robot easter nightjar bird! I'm here to tell you how to help scientists by making easter egg hunts for your friends..." 50 270 300 25))
+     (set! ctx.font "normal 40pt 'Press Start 2P'")
+     (wrap-text ctx "Easter Egg Hunt Construction Kit" 0 160 1000 50)
+     (robo-nightjar-says ctx 20 "Make easter egg hunts with my artificial eggs, and send them to your friends!"))
    (game-modify-buttons
     (list
+     (image-button
+      "Back" 1150 720 "jumpy" (find-image "button.png")
+      (lambda (c)
+        (set! window.location main-game-url)
+        c))
+
      (image-button
       ""
       800 430
       "rotate" (find-image "yes.png")
       (lambda (c)
-        (server-call-mutate
-         "sample"
-         (list (list "population" "CF")
-               (list "replicate" 0)
-               (list "count" 5)
-               (list "top" 100))
-         (lambda (c data)
-           (let ((e (JSON.parse data)))
-             (game-modify-draggables
-              (cons
-               (draggable-horizontal
-                120 350
-                (find-image (list-ref egghuntbgs 0))
-                (lambda (c) c))
-               (index-map
-                (lambda (i egg)
-                  (draggable
-                   (+ 400 (* i 100)) 750
-                   (egg-drawable (JSON.parse (car egg)))
-                   (lambda (c) c)))
-                e))
-              (nightjar-instructions
-               (game-modify-data
-                (lambda (d) (make-egghunt 2 (map (lambda (egg) (list-ref egg 3)) e)))
-                c))))))
-        c)))
+        (new-egghunt c))))
     c)))
 
-
-(define (nightjar-instructions c)
-  (game-modify-render
-   (lambda (ctx)
-     (draw-decoration ctx)
-     (ctx.drawImage (find-image "ren.png") 300 430)
-     (ctx.drawImage (find-image "bubble.png") 500 230)
-     (set! ctx.font "normal 15pt 'Press Start 2P'")
-     (wrap-text ctx "First, pick a backround" 45 270 320 20)
-     (wrap-text ctx "Then drag the eggs (made by people playing egglab) to hide them in the image." 45 305 320 20)
-     (wrap-text ctx "Send to a friend as a challenge!" 45 380 320 20)
-     (set! ctx.font "normal 15pt 'Press Start 2P'"))
-
-
-   (game-modify-buttons
-    (list
-     (image-button
-      "" 800 450 "rotate" (find-image "yes.png")
-      (lambda (c)
-        (nightjar-egghunt-builder c)))
-
-     (image-button
-      "" 50 400 "none" (find-image "left.png")
-      (lambda (c)
-        (game-modify-data
-         (lambda (d)
-           (egghunt-modify-image-index
-            d (modulo (- (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
-         c)))
-
-     (image-button
-      "" 1180 400 "none" (find-image "right.png")
-      (lambda (c)
-        (game-modify-data
-         (lambda (d)
-           (egghunt-modify-image-index
-            d (modulo (+ (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
-         c)))
-
-     )
-
-    c)))
 
 (define (nightjar-egghunt-builder c)
   (game-modify-update
@@ -131,8 +86,17 @@
 
    (game-modify-render
     (lambda (ctx)
-      (draw-decoration ctx)
-      (ctx.drawImage (find-image "ner.png") 1000 600)
+      (robo-nightjar-says-bot-left ctx 30 "")
+      (set! ctx.fillStyle "#000")
+      (set! ctx.font "normal 15pt 'Press Start 2P'")
+      (wrap-text ctx "1. Choose a background" -190 630 300 20)
+      (wrap-text ctx "2. Drag it left and right" -190 670 300 20)
+      (wrap-text ctx "3. Drag the eggs to hide them" -190 710 300 20)
+      (wrap-text ctx "4. Click send!" -190 760 300 20)
+
+      (ctx.drawImage (find-image "eggarea.png") 580 590)
+      (set! ctx.font "normal 20pt 'Press Start 2P'")
+      (wrap-text ctx "Your eggs" 60 630 1000 50)
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
 
     (game-modify-buttons
@@ -156,42 +120,68 @@
           c)))
 
       (image-button
-       "Send" 70 700 "flashy" (find-image "egg.png")
+       "Send" 1170 700 "flashy" (find-image "button.png")
        (lambda (c)
-         (server-call-mutate
-          "addegghunt"
-          (list (list "background" (list-ref egghuntbgs (egghunt-image-index (game-data c))))
-                (list "challenger" "?")
-                (list "message" "?")
-                (list "egg1" (list-ref (egghunt-egg-ids (game-data c)) 0))
-                (list "x1" (draggable-x (list-ref (game-draggables c) 0)))
-                (list "y1" (draggable-y (list-ref (game-draggables c) 0)))
-                (list "egg2" (list-ref (egghunt-egg-ids (game-data c)) 1))
-                (list "x2" (draggable-x (list-ref (game-draggables c) 1)))
-                (list "y2" (draggable-y (list-ref (game-draggables c) 1)))
-                (list "egg3" (list-ref (egghunt-egg-ids (game-data c)) 2))
-                (list "x3" (draggable-x (list-ref (game-draggables c) 2)))
-                (list "y3" (draggable-y (list-ref (game-draggables c) 2)))
-                (list "egg4" (list-ref (egghunt-egg-ids (game-data c)) 3))
-                (list "x4" (draggable-x (list-ref (game-draggables c) 3)))
-                (list "y4" (draggable-y (list-ref (game-draggables c) 3)))
-                (list "egg5" (list-ref (egghunt-egg-ids (game-data c)) 4))
-                (list "x5" (draggable-x (list-ref (game-draggables c) 4)))
-                (list "y5" (draggable-y (list-ref (game-draggables c) 4))))
+         (cond
+          ((eq? (length (draggable-children (car (game-draggables c)))) 5)
+           (server-call-mutate
+            "addegghunt"
+            (list (list "background" (list-ref egghuntbgs (egghunt-image-index (game-data c))))
+                  (list "challenger" "?")
+                  (list "message" "?")
+                  (list "egg1" (list-ref (egghunt-egg-ids (game-data c)) 0))
+                  (list "x1" (draggable-x (list-ref (game-draggables c) 0)))
+                  (list "y1" (draggable-y (list-ref (game-draggables c) 0)))
+                  (list "egg2" (list-ref (egghunt-egg-ids (game-data c)) 1))
+                  (list "x2" (draggable-x (list-ref (game-draggables c) 1)))
+                  (list "y2" (draggable-y (list-ref (game-draggables c) 1)))
+                  (list "egg3" (list-ref (egghunt-egg-ids (game-data c)) 2))
+                  (list "x3" (draggable-x (list-ref (game-draggables c) 2)))
+                  (list "y3" (draggable-y (list-ref (game-draggables c) 2)))
+                  (list "egg4" (list-ref (egghunt-egg-ids (game-data c)) 3))
+                  (list "x4" (draggable-x (list-ref (game-draggables c) 3)))
+                  (list "y4" (draggable-y (list-ref (game-draggables c) 3)))
+                  (list "egg5" (list-ref (egghunt-egg-ids (game-data c)) 4))
+                  (list "x5" (draggable-x (list-ref (game-draggables c) 4)))
+                  (list "y5" (draggable-y (list-ref (game-draggables c) 4))))
 
-          (lambda (c data)
-            (let ((e (JSON.parse data)))
-              (msg data)
-              (window.prompt "Copy to clipboard: Ctrl+C, Enter"
-                             (string-append
-                              "localhost:8000/egghunt-challenge.html?egghunt="
-                              (cadr e)))
-              c)))
-         c))
-
+            (lambda (c data)
+              (let ((e (JSON.parse data)))
+                (msg data)
+                (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
+                               (string-append
+                                "localhost:8000/egghunt-challenge.html?egghunt="
+                                (cadr e)))
+                (nightjar-thanks c))))
+           c)
+          (else (js "c")))))
 
       ) c))))
 
+(define (nightjar-thanks c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (wrap-text ctx "Thankyou for making an easter egg hunt!" 0 100 1000 1000)
+     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (set! ctx.fillStyle "#000")
+     (robo-nightjar-bot-right ctx))
+
+   (game-modify-buttons
+    (list
+
+     (image-button
+      "Make another one" 600 200 "slidy" (find-image "bigbutton-1.png")
+      (lambda (c) (new-egghunt c)))
+
+     (image-button
+      "Back to the main game" 600 400 "slidy" (find-image "bigbutton-2.png")
+      (lambda (c)
+        (set! window.location main-game-url)
+        c))
+
+     )
+    (game-modify-draggables (list) c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; startup
@@ -199,16 +189,14 @@
 (set! ctx.font "normal 50pt 'Press Start 2P'")
 
 (define egghuntbgs
-  (list "egghuntbgs/_CP_CP001_Eggs_L_Control_2m_DSC_0906.jpg"
-        "egghuntbgs/_CP_CP001_Eggs_R_Control_2m_DSC_0093.jpg"
-        "egghuntbgs/_CP_CP002_Eggs_L_Control_2m_with_GS_DSC_0540.jpg"
-        "egghuntbgs/_CP_CP002_Eggs_R_Control_2m_with_GS_DSC_0573.jpg"
-        "egghuntbgs/_CP_CP010_Eggs_L_Control_2m_DSC_0662.jpg"))
+  (list "bg/egghunt/_MV_MV007_Adult_R_Control_2m_DSC_8956.jpg"))
 
 (load-images!
  (append
   (list
    "button.png"
+   "bigbutton-1.png"
+   "bigbutton-2.png"
    "egg.png"
    "cf.png"
    "cp.png"
@@ -216,9 +204,16 @@
    "eggs.jpg"
    "bottombar.png"
    "bubble.png"
+   "bubble2.png"
+   "bubble3.png"
    "eggrow.png"
    "ren.png"
-   "ner.png"
+   "ren-eye1.png"
+   "ren-eye2.png"
+   "ren-eye3.png"
+   "ren-leg1.png"
+   "ren-leg2.png"
+   "eggarea.png"
    "yes.png"
    "no.png"
    "left.png"

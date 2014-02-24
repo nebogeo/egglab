@@ -14,207 +14,133 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; gp
+(define speed 0.1)
 
-(define egg-images
-  (build-list 24 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
+(define (make-egghunt egg-ids time)
+  (list egg-ids time))
 
-(define (transform x y r s) (list x y r s))
+(define (egghunt-egg-ids d) (list-ref d 0))
+(define (egghunt-modify-egg-ids d v) (list-replace d 0 v))
+(define (egghunt-time d) (list-ref d 1))
+(define (egghunt-modify-time d v) (list-replace d 1 v))
 
-(define (transform-x t) (list-ref t 0))
-(define (transform-y t) (list-ref t 1))
-(define (transform-rotate t) (list-ref t 2))
-(define (transform-scale t) (list-ref t 3))
+(define (time-elapsed c)
+  (- (game-time c) (egghunt-time (game-data c))))
 
-(define (transform-mutate t r)
-  (transform
-   (modulo (+ (transform-x t) (* (rndf) 10 r)) 127)
-   (modulo (+ (transform-y t) (* (rndf) 10 r)) 127)
-   (choose (list 0 (/ 6.282 4)))
-   1))
-
-(define (make-terminal)
-  (list
-   "terminal"
-   (transform (random 127) (random 127) (choose (list 0 (/ 6.282 4))) 1)
-   (choose egg-images)))
-
-(define (program-type t) (list-ref t 0))
-(define (terminal-transform t) (list-ref t 1))
-(define (terminal-image t) (list-ref t 2))
-
-(define (terminal-mutate t r)
-  (list
-   "terminal"
-   (transform-mutate (terminal-transform t) r)
-   (if (> r (rndf))
-       (choose egg-images)
-       (terminal-image t))))
-
-(define blend-modes
-  ;; "safe" modes (browser consisitent)
-  (list "source-over"
-        "source-atop"
-        "destination-over"
-        "destination-out"
-        "lighter"
-        "xor"))
-
-(define (make-operator a b)
-  (list "op" (choose blend-modes) a b))
-
-(define (operator-type t) (list-ref t 1))
-(define (operator-operand-a t) (list-ref t 2))
-(define (operator-operand-b t) (list-ref t 3))
-
-(define (operator-mutate t r)
-  (list
-   "op"
-   (if (> r (rndf)) (choose blend-modes) (operator-type t))
-   (egg-mutate (operator-operand-a t) r)
-   (egg-mutate (operator-operand-b t) r)))
-
-(define (make-random-egg depth)
-  (if (or (zero? depth) (< (random 10) 2))
-      (make-terminal)
-      (make-operator (make-random-egg (- depth 1))
-                     (make-random-egg (- depth 1)))))
-
-(define (egg-mutate egg r)
-  (if (eq? (program-type egg) "terminal")
-      (terminal-mutate egg r)
-      (operator-mutate egg r)))
-
-
-(define (egg-drawable program rotate)
-  (let ((tcanvas (document.createElement "canvas")))
-    (set! tcanvas.width 128)
-    (set! tcanvas.height 128)
-    (let ((tctx (tcanvas.getContext "2d")))
-      (when rotate
-            (tctx.translate 64 64)
-            (tctx.rotate (* (rndf) 2 Math.PI))
-            (tctx.translate -64 -64))
-      (draw-egg tctx program)
-      (set! tctx.globalCompositeOperation "destination-atop")
-      (tctx.drawImage (find-image "egg.png") 0 0)
-      tcanvas)))
-
-(define (draw-terminal ctx program)
-  (ctx.save)
-  (set! ctx.fillStyle
-        (ctx.createPattern
-         (find-image (terminal-image program) image-lib) "repeat"))
-
-  (ctx.translate 64 64)
-  (ctx.rotate (transform-rotate (terminal-transform program)))
-  (ctx.translate -64 -64)
-
-  (ctx.translate (transform-x (terminal-transform program))
-                 (transform-y (terminal-transform program)))
-  ;;        (ctx.scale (transform-scale (terminal-transform program))
-  ;;                   (transform-scale (terminal-transform program)))
-  (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
-                (- 0 (transform-y (terminal-transform program)))
-                (* 127 2) (* 127 2))
-  ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
-  ;;                   (/ 1 (transform-scale (terminal-transform program))))
-  ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
-  ;;               (- 0 (transform-y (terminal-transform program))))
-  (ctx.restore))
-
-(define (draw-op ctx program)
-  (let ((tcanvas (document.createElement "canvas")))
-    (set! tcanvas.width 128)
-    (set! tcanvas.height 128)
-    (let ((tctx (tcanvas.getContext "2d")))
-      (set! tctx.globalCompositeOperation "source-over")
-      (draw-egg tctx (operator-operand-a program))
-      (set! tctx.globalCompositeOperation (operator-type program))
-      (draw-egg tctx (operator-operand-b program))
-      (set! tctx.globalCompositeOperation "source-over")
-      (ctx.drawImage tcanvas 0 0))))
-
-(define (draw-egg ctx program)
-  (if (eq? (program-type program) "terminal")
-      (draw-terminal ctx program)
-      (draw-op ctx program)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (make-egghunt image-index egg-ids)
-  (list image-index egg-ids))
-
-(define (egghunt-image-index d) (list-ref d 0))
-(define (egghunt-modify-image-index d v) (list-replace d 0 v))
-(define (egghunt-egg-ids d) (list-ref d 1))
-(define (egghunt-modify-egg-ids d v) (list-replace d 1 v))
-
-(define (draw-decoration ctx)
-  (ctx.drawImage (find-image "eggrow.png") -50 0)
-  (ctx.drawImage (find-image "bottombar.png") -30 650)
-  (set! ctx.font "normal 20pt 'Press Start 2P'")
-  (set! ctx.fillStyle "#000")
-  (wrap-text ctx "Project Nightjar's Easter Egg Hunt Challenge" 10 60 1300 30))
-
-(define (draw-ren ctx text)
-  (ctx.drawImage (find-image "ren.png") 300 430)
-  (ctx.drawImage (find-image "bubble.png") 500 230)
-  (set! ctx.font "normal 18pt 'Press Start 2P'")
-  (wrap-text ctx text 50 270 300 25)
-  (set! ctx.font "normal 15pt 'Press Start 2P'")
-  (set! ctx.fillStyle "#fff"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define egghunt-id (getURLParameter "egghunt"))
 
 (define (nightjar-intro c)
-  (game-modify-render
-   (lambda (ctx)
-     (draw-decoration ctx)
-     (draw-ren ctx "Hi, I'm a robot easter nightjar bird! I'm here to tell you how to help scientists by making easter egg hunts for your friends..." 50 270 300 25))
-   (game-modify-buttons
-    (list
-     (image-button
-      ""
-      800 430
-      "rotate" (find-image "yes.png")
-      (lambda (c)
-        (server-call-mutate
-         "getegghunt"
-         (list (list "id" egghunt-id))
-         (lambda (c data)
-           (let ((e (list-ref (JSON.parse data) 1)))
-             (msg data)
-             (game-modify-draggables
-              (index-map
-               (lambda (i egg)
-                 (draggable
-                  (list-ref egg 1) (list-ref egg 2)
-                  (egg-drawable (JSON.parse (car egg)))
-                  (lambda (c) c)))
-               e)
-              (nightjar-challenge c)))))
-        c)))
-    c)))
+  (let ((icon-x 150)
+        (icon-y 520))
+    (game-modify-render
+     (lambda (ctx)
+       (ctx.drawImage (find-image "eggs.jpg") 0 0)
+       (set! ctx.font "normal 70pt 'Press Start 2P'")
 
+       (robo-nightjar-says ctx 17 "You have been sent an easter egghunt made with my artificial eggs to help ecology and evolution research!" 1)
+       (set! ctx.font "normal 40pt 'Press Start 2P'")
+       (wrap-text ctx "Easter Robot Nightjar says:" 0 160 1000 50)
+       (set! ctx.font "normal 15pt 'Press Start 2P'")
+       (set! ctx.globalAlpha 0.8)
+       (set! ctx.fillStyle "#ffffff")
+       (ctx.fillRect 0 (+ icon-y 140) 1500 100)
+       (set! ctx.globalAlpha 1))
 
-(define (nightjar-challenge c)
-  (game-modify-render
-   (lambda (ctx)
-     (ctx.drawImage (find-image (list-ref egghuntbgs 0) -50 -60)
-                    120 100)
-     (draw-decoration ctx)
-     (set! ctx.font "normal 15pt 'Press Start 2P'"))
+     (game-modify-buttons
+      (list
+       (image-button
+        ""
+        820 450
+        "rotate" (find-image "yes.png")
+        (lambda (c)
+          (server-call-mutate
+           "getegghunt"
+           (list (list "id" egghunt-id))
+           (lambda (c data)
+             (let ((hunt-data (JSON.parse data)))
+               (let ((info (car (car hunt-data)))
+                     (e (list-ref hunt-data 1)))
+                 (game-modify-buttons
+                  (index-map
+                   (lambda (i egg)
+                     (image-button
+                      "" (list-ref egg 1) (list-ref egg 2) "none"
+                      (egg-drawable (JSON.parse (car egg)))
+                      (lambda (c) c)))
+                   e)
+                  (nightjar-challenge
+                   info (game-modify-data
+                         (lambda (d)
+                           (make-egghunt () (game-time c)))
+                         c)))))))
+          c))
 
-   (game-modify-buttons
-    (list
+      (image-button
+       "" (+ icon-x 0) (+ icon-y 190) #f (find-image "sensory-ecology.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.sensoryecology.com/")
+         c))
+
+      (image-button
+       "" (+ icon-x 130) (+ icon-y 190) #f (find-image "cuckoos.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www2.zoo.cam.ac.uk/africancuckoos/home.html")
+         c))
+
+      (image-button
+       "" (+ icon-x 290) (+ icon-y 200) #f (find-image "exeter.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.exeter.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 470) (+ icon-y 190) #f (find-image "cu.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.zoo.cam.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 690) (+ icon-y 190) #f (find-image "bbsrc.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.bbsrc.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 900) (+ icon-y 190) #f (find-image "foam.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://fo.am")
+         c))
 
      )
+    c))))
 
-    c)))
+
+(define (nightjar-challenge info c)
+  (game-modify-update
+   (lambda (t c)
+     (let ((t (+ 1500 (* (time-elapsed c) (- 0 speed)))))
+       (if (> t -4500)
+           (game-modify-world-offset c (list t 0))
+           c
+                                        ;(begin
+           ;  ;;(send-remaining c)
+           ;  (nightjar-env
+           ;   (game-modify-world-offset c (list 0 0))))
+           )))
+   (game-modify-render
+    (lambda (ctx)
+      (ctx.drawImage (find-image (list-ref info 0) -50 -60) 0 100)
+      (set! ctx.font "normal 15pt 'Press Start 2P'"))
+     c)))
 
 
 
@@ -224,30 +150,36 @@
 (set! ctx.font "normal 50pt 'Press Start 2P'")
 
 (define egghuntbgs
-  (list "egghuntbgs/_CP_CP001_Eggs_L_Control_2m_DSC_0906.jpg"
-        "egghuntbgs/_CP_CP001_Eggs_R_Control_2m_DSC_0093.jpg"
-        "egghuntbgs/_CP_CP002_Eggs_L_Control_2m_with_GS_DSC_0540.jpg"
-        "egghuntbgs/_CP_CP002_Eggs_R_Control_2m_with_GS_DSC_0573.jpg"
-        "egghuntbgs/_CP_CP010_Eggs_L_Control_2m_DSC_0662.jpg"))
+  (list "bg/egghunt/_MV_MV007_Adult_R_Control_2m_DSC_8956.jpg"))
 
 (load-images!
  (append
   (list
    "button.png"
+   "bigbutton-1.png"
+   "bigbutton-2.png"
+   "medbutton-1.png"
    "egg.png"
    "cf.png"
    "cp.png"
    "mv.png"
    "eggs.jpg"
-   "bottombar.png"
    "bubble.png"
-   "eggrow.png"
+   "bubble2.png"
    "ren.png"
-   "ner.png"
+   "ren-eye1.png"
+   "ren-eye2.png"
+   "ren-eye3.png"
+   "ren-leg1.png"
+   "ren-leg2.png"
    "yes.png"
    "no.png"
-   "left.png"
-   "right.png")
+   "bbsrc.png"
+   "cu.png"
+   "exeter.png"
+   "cuckoos.png"
+   "foam.png"
+   "sensory-ecology.png")
    egghuntbgs
    egg-images)
  (lambda ()

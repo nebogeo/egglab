@@ -425,21 +425,31 @@
    (draggable-children b))
   (ctx.restore))
 
-(define (draggable-move! b mx my)
+;; clamp x coordinate
+(define (draggable-check-x b x)
+  (if (eq? (draggable-type b) "horizontal")
+      (if (> x 0) 0
+          (if (< x (- screen-width (draggable-w b)))
+              (- screen-width (draggable-w b))
+              x))
+      x))
+
+(define (draggable-move! b mx my dx dy)
   (msg (list (draggable-x b) (draggable-y b)))
   (let ((drawable (draggable-drawable b)))
     (draggable-modify-x
      (draggable-modify-y
       b (if (eq? (draggable-type b) "horizontal")
-            (draggable-y b) (- my (/ drawable.height 2))))
-     (- mx (/ drawable.width 2)))))
+            (draggable-y b)
+            (+ dy (draggable-y b))))
+     (draggable-check-x b (+ dx (draggable-x b))))))
 
-(define (draggables-update-children e mx my l)
+(define (draggables-update-children e mx my dx dy l)
   (define found (js "false")) ;; giving up...
   (let ((r (map
             (lambda (d)
               (if (not found)
-                  (let ((result (draggable-update d e mx my)))
+                  (let ((result (draggable-update d e mx my dx dy)))
                     (set! found (car result))
                     (cadr result))
                   d))
@@ -449,11 +459,12 @@
 
 ;; returns a modified draggable
 ;; includes updating all children, with early out
-(define (draggable-update b e mx my)
+(define (draggable-update b e mx my dx dy)
   (let ((child-update (draggables-update-children
                        e
                        (- mx (draggable-x b))
                        (- my (draggable-y b))
+                       dx dy
                        (draggable-children b))))
     (cond
      ((eq? (car child-update) #t)
@@ -465,29 +476,29 @@
           (list #t (draggable-modify-state b #t))
           (list #f b)))
      ((and (eq? e "move") (draggable-state b))
-      (list #t (draggable-move! b mx my)))
+      (list #t (draggable-move! b mx my dx dy)))
      ((and (eq? e "up") (draggable-state b))
       (list #t (draggable-modify-state b #f)))
      (else (list #f b)))))
 
-(define (draggables-update-list e mx my l)
+(define (draggables-update-list e mx my dx dy l)
   (define found (js "false")) ;; giving up...
   (map
    (lambda (d)
      (if (not found)
-         (let ((result (draggable-update d e mx my)))
+         (let ((result (draggable-update d e mx my dx dy)))
            (set! found (car result))
            (cadr result))
          d))
    l))
 
-(define (draggables-update e mx my c)
+(define (draggables-update e mx my dx dy c)
   (let ((c
          (if (and (> (length (game-draggables c)) 0) (eq? e "up"))
              (game-modify-draggables (draggables-check-ownership (game-draggables c)) c)
              c)))
   (game-modify-draggables
-   (draggables-update-list e mx my (game-draggables c)) c)))
+   (draggables-update-list e mx my dx dy (game-draggables c)) c)))
 
 (define (draggables-render! ctx t b)
   (for-each
@@ -585,18 +596,29 @@
 (define (game-world-offset g) (list-ref g 8))
 (define (game-modify-world-offset g v) (list-replace g 8 v))
 
+(define (game-modify-mouse g x y)
+  (game-modify-mx
+   x (game-modify-my y g)))
+
 (define (game-mouse-down g mx my)
   (draggables-update
-   "down" mx my
+   "down" mx my 0 0
    (buttons-update (game-buttons g) mx my
-                   (game-modify-mx
-                    mx (game-modify-my my g)))))
+                   (game-modify-mouse g mx my))))
 
 (define (game-mouse-move g mx my)
-  (draggables-update "move" mx my g))
+  (game-modify-mouse
+   (draggables-update
+    "move" mx my
+    (- mx (game-mx g))
+    (- my (game-my g)) g) mx my))
 
 (define (game-mouse-up g mx my)
-  (draggables-update "up" mx my g))
+  (game-modify-mouse
+   (draggables-update
+    "up" mx my
+    (- mx (game-mx g))
+    (- my (game-my g)) g) mx my))
 
 ;; ----------------------------------------
 

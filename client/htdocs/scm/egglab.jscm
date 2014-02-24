@@ -228,7 +228,7 @@
        (ctx.drawImage (find-image "eggs.jpg") 0 0)
        (set! ctx.font "normal 70pt 'Press Start 2P'")
 
-       (robo-nightjar-says ctx 22 "Search for my artificial eggs and help ecology & camouflage research!" 1)
+       (robo-nightjar-says ctx 22 "Search for my artificial eggs and help ecology and evolution research!" 1)
        (set! ctx.font "normal 40pt 'Press Start 2P'")
        (wrap-text ctx "Easter Robot Nightjar says:" 0 160 1000 50)
        (set! ctx.font "normal 15pt 'Press Start 2P'")
@@ -956,7 +956,6 @@
    "ren-eye3.png"
    "ren-leg1.png"
    "ren-leg2.png"
-   "ner.png"
    "yes.png"
    "no.png"
    "bbsrc.png"
