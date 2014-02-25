@@ -149,7 +149,7 @@
                   (msg data)
                   (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
                                  (string-append
-                                  main-game-url "/egghunt-challenge.html?egghunt="
+                                  main-game-url "/challenge.html?egghunt="
                                   (cadr e)))
                   (nightjar-thanks c)))))
            c)
