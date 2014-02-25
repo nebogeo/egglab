@@ -134,8 +134,8 @@
    ((eq? (program-type egg) "terminal") egg)
    (else
     (list "op" (operator-type egg)
-          (structure-prune (operator-operand-a egg) (+ d 1))
-          (structure-prune (operator-operand-b egg) (+ d 1))))))
+          (structure-prune (operator-operand-a egg) (- depth 1))
+          (structure-prune (operator-operand-b egg) (- depth 1))))))
 
 ;; walk through the tree at random, occasionally replacing subtrees
 ;; with bits of the main tree
@@ -146,8 +146,8 @@
      ((eq? (program-type e) "terminal") e)
      (else
       (list "op" (operator-type e)
-            (if (< (rndf) 0.5) (_ (operator-operand-a e)) (operator-operand-a e))
-            (if (< (rndf) 0.5) (_ (operator-operand-b e)) (operator-operand-b e))))))
+            (_ (operator-operand-a e))
+            (_ (operator-operand-b e))))))
   (_ egg))
 
 (define (value-mutate egg r)
@@ -155,13 +155,9 @@
       (terminal-mutate egg r)
       (operator-mutate egg r)))
 
+;; mutate structure, then prune it before mutating the values
 (define (egg-mutate egg r)
-  (value-mutate (structure-mutate egg r) r))
-
-(let ((test (make-random-egg 3)))
-  (msg test)
-  (msg (egg-mutate test 0.5)))
-
+  (value-mutate (structure-prune (structure-mutate egg r) egg-complexity)  r))
 
 (define (egg-drawable program rotate)
   (let ((tcanvas (document.createElement "canvas")))
