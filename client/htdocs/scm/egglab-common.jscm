@@ -33,7 +33,7 @@
   (transform
    (modulo (+ (transform-x t) (* (rndf) 10 r)) 127)
    (modulo (+ (transform-y t) (* (rndf) 10 r)) 127)
-   (choose (list 0 (/ 6.282 4)))
+   (+ (transform-rotate t) (* (rndf) r))
    1))
 
 ;; a terminal can either be an image with a transform or a flat colour
@@ -42,12 +42,12 @@
       (list
        "terminal"
        "image"
-       (transform (random 127) (random 127) (choose (list 0 (/ 6.282 4))) 1)
+       (transform (random 127) (random 127) (* (rndf) 6.282) 1)
        (choose egg-images))
       (list
        "terminal"
        "colour"
-       (list (random 256) (random 256) (random 256) (random 256)))))
+       (list (random 256) (random 256) (random 256) (rndf)))))
 
 (define (program-type t) (list-ref t 0))
 (define (terminal-type t) (list-ref t 1))
@@ -69,6 +69,9 @@
                 (list (random 256) (random 256) (random 256) (random 256))
                 (terminal-colour t)))))
 
+(define (list-clone l) (map (lambda (e) e) l))
+(define (terminal-clone l) (list-clone l))
+
 (define blend-modes
   ;; "safe" modes (browser consisitent)
   (list "source-over"
@@ -81,6 +84,11 @@
 (define (make-operator a b)
   (list "op" (choose blend-modes) a b))
 
+(define (operator-clone o)
+  (list "op" (list-ref o 1)
+        (egg-clone (operator-operand-a o))
+        (egg-clone (operator-operand-b o))))
+
 (define (operator-type t) (list-ref t 1))
 (define (operator-operand-a t) (list-ref t 2))
 (define (operator-operand-b t) (list-ref t 3))
@@ -89,8 +97,8 @@
   (list
    "op"
    (if (> r (rndf)) (choose blend-modes) (operator-type t))
-   (egg-mutate (operator-operand-a t) r)
-   (egg-mutate (operator-operand-b t) r)))
+   (value-mutate (operator-operand-a t) r)
+   (value-mutate (operator-operand-b t) r)))
 
 (define (make-random-egg depth)
   (if (or (zero? depth) (< (random 10) 2))
@@ -98,10 +106,62 @@
       (make-operator (make-random-egg (- depth 1))
                      (make-random-egg (- depth 1)))))
 
-(define (egg-mutate egg r)
+(define (egg-clone egg)
+  (if (eq? (program-type egg) "terminal")
+      (terminal-clone egg)
+      (operator-clone egg)))
+
+(define (random-subtree program)
+  (define (_ p d)
+    (cond
+     ((zero? d) p)
+     ((eq? (program-type p) "terminal") p)
+     (else
+      (if (< (rndf) 0.5)
+          (_ (operator-operand-a p))
+          (_ (operator-operand-b p))))))
+  (_ program (random egg-complexity)))
+
+;(define (subtree-mutate egg)
+;  (let ((src (egg-clone (random-subtree egg)))
+;        (dst (random-subtree egg)))
+;    (if (eq? (program-type dst) "terminal")
+
+;; remove nodes below a given depth (replace them with random terminals)
+(define (structure-prune egg depth)
+  (cond
+   ((zero? depth) (make-terminal))
+   ((eq? (program-type egg) "terminal") egg)
+   (else
+    (list "op" (operator-type egg)
+          (structure-prune (operator-operand-a egg) (+ d 1))
+          (structure-prune (operator-operand-b egg) (+ d 1))))))
+
+;; walk through the tree at random, occasionally replacing subtrees
+;; with bits of the main tree
+(define (structure-mutate egg r)
+  (define (_ e)
+    (cond
+     ((< (rndf) r) (egg-clone (random-subtree egg)))
+     ((eq? (program-type e) "terminal") e)
+     (else
+      (list "op" (operator-type e)
+            (if (< (rndf) 0.5) (_ (operator-operand-a e)) (operator-operand-a e))
+            (if (< (rndf) 0.5) (_ (operator-operand-b e)) (operator-operand-b e))))))
+  (_ egg))
+
+(define (value-mutate egg r)
   (if (eq? (program-type egg) "terminal")
       (terminal-mutate egg r)
       (operator-mutate egg r)))
+
+(define (egg-mutate egg r)
+  (value-mutate (structure-mutate egg r) r))
+
+(let ((test (make-random-egg 3)))
+  (msg test)
+  (msg (egg-mutate test 0.5)))
+
 
 (define (egg-drawable program rotate)
   (let ((tcanvas (document.createElement "canvas")))
@@ -133,9 +193,9 @@
                    (transform-y (terminal-transform program)))
     ;;        (ctx.scale (transform-scale (terminal-transform program))
     ;;                   (transform-scale (terminal-transform program)))
-    (ctx.fillRect (- 0 (transform-x (terminal-transform program)))
-                  (- 0 (transform-y (terminal-transform program)))
-                  (* 127 2) (* 127 2))
+    (ctx.fillRect (- 0 (transform-x (terminal-transform program)) 256)
+                  (- 0 (transform-y (terminal-transform program)) 256)
+                  (* 256 2) (* 256 2))
     ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
     ;;                   (/ 1 (transform-scale (terminal-transform program))))
     ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
@@ -148,7 +208,7 @@
                            (list-ref (terminal-colour program) 0) ","
                            (list-ref (terminal-colour program) 1) ","
                            (list-ref (terminal-colour program) 2) ","
-                           (/ (list-ref (terminal-colour program) 3) 256) ")"))
+                           (list-ref (terminal-colour program) 3) ")"))
       (ctx.fillRect 0 0 128 128)))))
 
 
