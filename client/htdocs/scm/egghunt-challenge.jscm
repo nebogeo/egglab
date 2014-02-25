@@ -32,6 +32,10 @@
 
 (define egghunt-id (getURLParameter "egghunt"))
 
+;; roughly
+(define (fitness c egg)
+  (/ (screen-pos c egg) speed))
+
 (define (nightjar-intro c)
   (let ((icon-x 150)
         (icon-y 520))
@@ -64,13 +68,34 @@
                (let ((info (car (car hunt-data)))
                      (e (list-ref hunt-data 1)))
                  (game-modify-buttons
-                  (index-map
-                   (lambda (i egg)
-                     (image-button
-                      "" (list-ref egg 1) (list-ref egg 2) "none"
-                      (egg-drawable (JSON.parse (car egg)))
-                      (lambda (c) c)))
-                   e)
+                  (append
+                   (index-map
+                    (lambda (i egg)
+                      (let ((drawable (egg-drawable (JSON.parse (car egg)))))
+                        (image-button
+                         "" (list-ref egg 1) (list-ref egg 2) "none"
+                         drawable
+                         (lambda (c)
+                           ;; prolly not....
+                           ;;(server-call
+                           ;; "add"
+                           ;; (list
+                           ;;  (list "image" "")
+                           ;;  (list "game" "scroll")
+                           ;;  (list "genotype" (scheme-txt (individual-egg egg)))
+                           ;;  (list "fitness" (fitness c egg))))
+
+                           (game-modify-buttons
+                            (filter
+                             (lambda (b)
+                               (not (eq? (button-drawable b) drawable)))
+                             (game-buttons c))
+                            c)))))
+                    e)
+                   (list
+                    (image-button
+                     "" (/ 4948 2) 300 "none"
+                     (find-image (list-ref info 0)) (lambda (c) c))))
                   (nightjar-challenge
                    info (game-modify-data
                          (lambda (d)
@@ -127,8 +152,8 @@
 (define (nightjar-challenge info c)
   (game-modify-update
    (lambda (t c)
-     (let ((t (+ 1500 (* (time-elapsed c) (- 0 speed)))))
-       (if (> t -4500)
+     (let ((t (+ 1000 (* (time-elapsed c) (- 0 speed)))))
+       (if (> t -4000)
            (game-modify-world-offset c (list t 0))
            c
                                         ;(begin
@@ -138,7 +163,7 @@
            )))
    (game-modify-render
     (lambda (ctx)
-      (ctx.drawImage (find-image (list-ref info 0) -50 -60) 0 100)
+      (robo-nightjar-says-bottom ctx 25 "See if you can click on all my eggs!")
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
      c)))
 
@@ -166,6 +191,7 @@
    "eggs.jpg"
    "bubble.png"
    "bubble2.png"
+   "bubble3.png"
    "ren.png"
    "ren-eye1.png"
    "ren-eye2.png"

@@ -25,6 +25,7 @@
   (exec/ignore db "create table stats ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)")
   (exec/ignore db "create table egghunt ( id integer primary key autoincrement, background varchar, challenger varchar, message varchar, score integer, timestamp varchar)")
   (exec/ignore db "create table egghunt_egg ( id integer primary key autoincrement, egghunt_id integer, egg_id integer, x integer, y integer)")
+;;  (exec/ignore db "create table egghunt_score ( id integer primary key autoincrement. egghunt_id integer, egg_id integer, est_clicked_time integer)")
   )
 
 (define (insert-egg db population replicate time-stamp player-id fitness

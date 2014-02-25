@@ -240,7 +240,7 @@ ditto.comp_let = function(args) {
 
 ditto.comp_cond = function(args) {
     if (ditto.car(ditto.car(args))==="else") {
-        return "(function () { return "+ditto.comp(ditto.cdr(ditto.car(args)))+"})()";
+        return "(function () { return "+ditto.comp_let([[]].concat(ditto.cdr(ditto.car(args))))+"})()";
     } else {
         return "(function () { if ("+ditto.comp(ditto.car(ditto.car(args)))+") {\n"+
             // todo: decide if lambda, let or begin is canonical way to do this...

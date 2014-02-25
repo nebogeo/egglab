@@ -42,16 +42,14 @@
     (foldl
      (lambda (i r)
        (append r (list (fn i))))
-     ()
-     l)))
+     () l)))
 
 (define filter
   (lambda (fn l)
     (foldl
      (lambda (i r)
        (if (fn i) (append r (list i)) r))
-     ()
-     l)))
+     () l)))
 
 (define for-each
   (lambda (fn l)
@@ -59,8 +57,7 @@
      (lambda (i r)
        (fn i))
      ()
-     l)
-    #f))
+     l) #f))
 
 ;; index versions provide count for first argument
 
@@ -80,8 +77,7 @@
      (lambda (e r)
        (fn r e)
        (+ r 1))
-     0
-     l)))
+     0 l)))
 
 ;; fix js modulo irt negative numbers
 (define (modulo m n) (js "((m%n)+n)%n"))

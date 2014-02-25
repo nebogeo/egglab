@@ -643,10 +643,10 @@
           (top-update-game t game)
 
           (ctx.save)
+          (top-render-game ctx game)
           (ctx.translate (car (game-world-offset game))
                          (cadr (game-world-offset game)))
 
-          (top-render-game ctx game)
           (buttons-render! ctx t (game-buttons game))
           (draggables-render! ctx t (game-draggables game))
           (ctx.restore))
