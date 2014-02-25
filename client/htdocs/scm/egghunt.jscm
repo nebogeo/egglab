@@ -16,8 +16,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define main-game-url "http://nightjar.exeter.ac.uk/egglab")
-
 (define (make-egghunt image-index egg-ids)
   (list image-index egg-ids))
 
@@ -124,35 +122,36 @@
        (lambda (c)
          (cond
           ((eq? (length (draggable-children (car (game-draggables c)))) 5)
-           (server-call-mutate
-            "addegghunt"
-            (list (list "background" (list-ref egghuntbgs (egghunt-image-index (game-data c))))
-                  (list "challenger" "?")
-                  (list "message" "?")
-                  (list "egg1" (list-ref (egghunt-egg-ids (game-data c)) 0))
-                  (list "x1" (draggable-x (list-ref (game-draggables c) 0)))
-                  (list "y1" (draggable-y (list-ref (game-draggables c) 0)))
-                  (list "egg2" (list-ref (egghunt-egg-ids (game-data c)) 1))
-                  (list "x2" (draggable-x (list-ref (game-draggables c) 1)))
-                  (list "y2" (draggable-y (list-ref (game-draggables c) 1)))
-                  (list "egg3" (list-ref (egghunt-egg-ids (game-data c)) 2))
-                  (list "x3" (draggable-x (list-ref (game-draggables c) 2)))
-                  (list "y3" (draggable-y (list-ref (game-draggables c) 2)))
-                  (list "egg4" (list-ref (egghunt-egg-ids (game-data c)) 3))
-                  (list "x4" (draggable-x (list-ref (game-draggables c) 3)))
-                  (list "y4" (draggable-y (list-ref (game-draggables c) 3)))
-                  (list "egg5" (list-ref (egghunt-egg-ids (game-data c)) 4))
-                  (list "x5" (draggable-x (list-ref (game-draggables c) 4)))
-                  (list "y5" (draggable-y (list-ref (game-draggables c) 4))))
+           (let ((eggs (draggable-children (car (game-draggables c)))))
+             (server-call-mutate
+              "addegghunt"
+              (list (list "background" (list-ref egghuntbgs (egghunt-image-index (game-data c))))
+                    (list "challenger" "?")
+                    (list "message" "?")
+                    (list "egg1" (list-ref (egghunt-egg-ids (game-data c)) 0))
+                    (list "x1" (draggable-x (list-ref eggs 0)))
+                    (list "y1" (draggable-y (list-ref eggs 0)))
+                    (list "egg2" (list-ref (egghunt-egg-ids (game-data c)) 1))
+                    (list "x2" (draggable-x (list-ref eggs 1)))
+                    (list "y2" (draggable-y (list-ref eggs 1)))
+                    (list "egg3" (list-ref (egghunt-egg-ids (game-data c)) 2))
+                    (list "x3" (draggable-x (list-ref eggs 2)))
+                    (list "y3" (draggable-y (list-ref eggs 2)))
+                    (list "egg4" (list-ref (egghunt-egg-ids (game-data c)) 3))
+                    (list "x4" (draggable-x (list-ref eggs 3)))
+                    (list "y4" (draggable-y (list-ref eggs 3)))
+                    (list "egg5" (list-ref (egghunt-egg-ids (game-data c)) 4))
+                    (list "x5" (draggable-x (list-ref eggs 4)))
+                    (list "y5" (draggable-y (list-ref eggs 4))))
 
-            (lambda (c data)
-              (let ((e (JSON.parse data)))
-                (msg data)
-                (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
-                               (string-append
-                                main-game-url "/egghunt-challenge.html?egghunt="
-                                (cadr e)))
-                (nightjar-thanks c))))
+              (lambda (c data)
+                (let ((e (JSON.parse data)))
+                  (msg data)
+                  (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
+                                 (string-append
+                                  main-game-url "/egghunt-challenge.html?egghunt="
+                                  (cadr e)))
+                  (nightjar-thanks c)))))
            c)
           (else (js "c")))))
 

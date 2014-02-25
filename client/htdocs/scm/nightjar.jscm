@@ -438,7 +438,6 @@
       x))
 
 (define (draggable-move! b mx my dx dy)
-  (msg (list (draggable-x b) (draggable-y b)))
   (let ((drawable (draggable-drawable b)))
     (draggable-modify-x
      (draggable-modify-y
@@ -513,33 +512,46 @@
 (define (draggable-attach d p)
   (let ((x (- (draggable-x d) (draggable-x p)))
         (y (- (draggable-y d) (draggable-y p))))
-    (msg (list x y))
     (draggable-modify-x
      (draggable-modify-y d y) x)))
+
+(define (draggable-in-list? d l)
+  (foldl
+   (lambda (dd r)
+     (if (and (not r) (eq? (draggable-drawable dd) (draggable-drawable d)))
+         #t r))
+   #f l))
+
+
+(define (draggable-remove-roots-in-car l)
+  (cons
+   (car l)
+   (filter
+    (lambda (d)
+      (not (draggable-in-list? d (draggable-children (car l)))))
+    (cdr l))))
 
 ;; a simple drag-drop parenting arrangement
 ;; check first draggable and add from remaining
 ;; when inside
 (define (draggables-check-ownership l)
-  (cons
-   (draggable-modify-children
-    (car l)
-    (append
-     (draggable-children (car l))
-     (map
-      (lambda (attached)
-        (draggable-attach attached (car l)))
-      (filter
-       (lambda (c)
-         (draggable-inside?
-          (car l) (draggable-x c)
-          (draggable-y c)))
-       (cdr l)))))
-   (filter
-    (lambda (c)
-      (not (draggable-inside?
-            (car l) (draggable-x c)
-            (draggable-y c))))
+  (msg (length l))
+  (msg (length (draggable-children (car l))))
+  (draggable-remove-roots-in-car
+   (cons
+    (draggable-modify-children
+     (car l)
+     (append
+      (draggable-children (car l))
+      (map
+       (lambda (attached)
+         (draggable-attach attached (car l)))
+       (filter
+        (lambda (c)
+          (draggable-inside?
+           (car l) (draggable-x c)
+           (draggable-y c)))
+        (cdr l)))))
     (cdr l))))
 
 ;; ----------------------------------------

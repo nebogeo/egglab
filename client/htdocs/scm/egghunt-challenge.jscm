@@ -14,7 +14,7 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(define speed 0.1)
+(define speed 0.3)
 
 (define (make-egghunt egg-ids time)
   (list egg-ids time))
@@ -35,6 +35,53 @@
 ;; roughly
 (define (fitness c egg)
   (/ (screen-pos c egg) speed))
+
+(define (start-egghunt c)
+  (server-call-mutate
+   "getegghunt"
+   (list (list "id" egghunt-id))
+   (lambda (c data)
+     (let ((hunt-data (JSON.parse data)))
+       (let ((info (car (car hunt-data)))
+             (e (list-ref hunt-data 1)))
+         (game-modify-buttons
+          (append
+           (index-map
+            (lambda (i egg)
+              (let ((drawable (egg-drawable (JSON.parse (car egg)))))
+                (image-button
+                 "" (+ (list-ref egg 1) 60) (+ 130 (list-ref egg 2)) "none"
+                 drawable
+                 (lambda (c)
+                   ;; prolly not....
+                   ;;(server-call
+                   ;; "add"
+                   ;; (list
+                   ;;  (list "image" "")
+                   ;;  (list "game" "scroll")
+                   ;;  (list "genotype" (scheme-txt (individual-egg egg)))
+                   ;;  (list "fitness" (fitness c egg))))
+
+                   (game-modify-buttons
+                    (filter
+                     (lambda (b)
+                       (not (eq? (button-drawable b) drawable)))
+                     (game-buttons c))
+                    c)))))
+            e)
+           (list
+            (image-button
+             "" (/ 4948 2) 330 "none"
+             (find-image (list-ref info 0)) (lambda (c) c))))
+          (nightjar-challenge
+           info (game-modify-data
+                 (lambda (d)
+                   (make-egghunt () (game-time c)))
+                 c)))))))
+  c)
+
+
+
 
 (define (nightjar-intro c)
   (let ((icon-x 150)
@@ -60,48 +107,7 @@
         820 450
         "rotate" (find-image "yes.png")
         (lambda (c)
-          (server-call-mutate
-           "getegghunt"
-           (list (list "id" egghunt-id))
-           (lambda (c data)
-             (let ((hunt-data (JSON.parse data)))
-               (let ((info (car (car hunt-data)))
-                     (e (list-ref hunt-data 1)))
-                 (game-modify-buttons
-                  (append
-                   (index-map
-                    (lambda (i egg)
-                      (let ((drawable (egg-drawable (JSON.parse (car egg)))))
-                        (image-button
-                         "" (list-ref egg 1) (list-ref egg 2) "none"
-                         drawable
-                         (lambda (c)
-                           ;; prolly not....
-                           ;;(server-call
-                           ;; "add"
-                           ;; (list
-                           ;;  (list "image" "")
-                           ;;  (list "game" "scroll")
-                           ;;  (list "genotype" (scheme-txt (individual-egg egg)))
-                           ;;  (list "fitness" (fitness c egg))))
-
-                           (game-modify-buttons
-                            (filter
-                             (lambda (b)
-                               (not (eq? (button-drawable b) drawable)))
-                             (game-buttons c))
-                            c)))))
-                    e)
-                   (list
-                    (image-button
-                     "" (/ 4948 2) 300 "none"
-                     (find-image (list-ref info 0)) (lambda (c) c))))
-                  (nightjar-challenge
-                   info (game-modify-data
-                         (lambda (d)
-                           (make-egghunt () (game-time c)))
-                         c)))))))
-          c))
+          (start-egghunt c)))
 
       (image-button
        "" (+ icon-x 0) (+ icon-y 190) #f (find-image "sensory-ecology.png")
@@ -153,19 +159,99 @@
   (game-modify-update
    (lambda (t c)
      (let ((t (+ 1000 (* (time-elapsed c) (- 0 speed)))))
-       (if (> t -4000)
-           (game-modify-world-offset c (list t 0))
-           c
-                                        ;(begin
-           ;  ;;(send-remaining c)
-           ;  (nightjar-env
-           ;   (game-modify-world-offset c (list 0 0))))
-           )))
+       (cond
+        ((> t -4000)
+         (game-modify-world-offset c (list t 0)))
+        (else
+         (if (> (length (game-buttons c)) 1)
+             (nightjar-try-again
+              info
+              (- (length (game-buttons c)) 1)
+              (game-modify-world-offset c (list 0 0)))
+             (nightjar-well-done (game-modify-world-offset c (list 0 0))))))))
    (game-modify-render
     (lambda (ctx)
-      (robo-nightjar-says-bottom ctx 25 "See if you can click on all my eggs!")
+      (set! ctx.font "normal 25pt 'Press Start 2P'")
+      (wrap-text ctx "Easter robot nightjar's amazing easter egg hunt!" 0 50 1000 1000)
+      (robo-nightjar-says-bottom ctx 20 "See if you can click on all five of my eggs!")
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
      c)))
+
+(define (nightjar-try-again info count c)
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (let ((txt (if (eq? count 1) "There is one left"
+                     (string-append "There are " count " left"))))
+        (robo-nightjar-says
+         ctx 25 (string-append "Not all eggs found. " txt
+                               "! Would you like to try again?")))
+      (set! ctx.font "normal 15pt 'Press Start 2P'"))
+
+    (game-modify-buttons
+     (list
+      (image-button
+       ""
+       780 450
+       "rotate" (find-image "yes.png")
+       (lambda (c)
+         (start-egghunt c)))
+
+      (image-button
+       ""
+       870 450
+       "rotate" (find-image "no.png")
+       (lambda (c)
+         (nightjar-thanks c)))
+      )
+     c))))
+
+(define (nightjar-well-done c)
+  (game-modify-update
+   (lambda (t c) c)
+   (game-modify-render
+    (lambda (ctx)
+      (robo-nightjar-says ctx 25 "Well done, you found all the eggs!")
+      (set! ctx.font "normal 15pt 'Press Start 2P'"))
+
+    (game-modify-buttons
+     (list
+      (image-button
+       ""
+       800 430
+       "rotate" (find-image "yes.png")
+       (lambda (c)
+         (nightjar-thanks c)))
+      )
+    c))))
+
+(define (nightjar-thanks c)
+  (game-modify-render
+   (lambda (ctx)
+     (set! ctx.font "normal 30pt 'Press Start 2P'")
+     (wrap-text ctx "Thankyou for playing my easter egg hunt!" 0 100 1000 1000)
+     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (set! ctx.fillStyle "#000")
+     (robo-nightjar-bot-right ctx))
+
+   (game-modify-buttons
+    (list
+
+     (image-button
+      "Go to the main game" 600 200 "slidy" (find-image "bigbutton-1.png")
+      (lambda (c)
+        (set! window.location main-game-url)
+        c))
+
+     (image-button
+      "About the project" 600 400 "slidy" (find-image "bigbutton-2.png")
+      (lambda (c)
+        (set! window.location "http://nightjar.exeter.ac.uk")
+        c))
+
+     )
+    (game-modify-draggables (list) c))))
 
 
 
