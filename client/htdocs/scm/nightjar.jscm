@@ -376,7 +376,7 @@
 ;; draggable objects
 
 ;; callback fires on mouse up
-(define (draggable x y drawable callback)
+(define (draggable id x y drawable callback)
   (list (- x (/ drawable.width 2))
         (- y (/ drawable.height 2))
         drawable.width
@@ -385,7 +385,8 @@
         #f
         ()
         callback
-        "normal"))
+        "normal"
+        id))
 
 (define (draggable-horizontal x y drawable callback)
   (list (- x (/ drawable.width 2))
@@ -396,7 +397,8 @@
         #f
         ()
         callback
-        "horizontal"))
+        "horizontal"
+        0))
 
 (define (draggable-x b) (list-ref b 0))
 (define (draggable-modify-x b v) (list-replace b 0 v))
@@ -411,6 +413,7 @@
 (define (draggable-modify-children b v) (list-replace b 6 v))
 (define (draggable-callback b) (list-ref b 7))
 (define (draggable-type b) (list-ref b 8))
+(define (draggable-id b) (list-ref b 9))
 
 (define (draggable-inside? d x y)
   (in-rect? (draggable-x d) (draggable-y d)
