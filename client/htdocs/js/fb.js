@@ -21,7 +21,8 @@ function fb_interface(appid)
     this.accessToken=false;
     this.uid=false;
     this.me=null;
-    
+    this.logged_on=false;
+
     // called automatically from login
     this.get_user=function() {
         var fb=this;
@@ -45,6 +46,7 @@ function fb_interface(appid)
                 console.log("logged in already...");
 		fb.uid = response.authResponse.userID;
 		fb.accessToken = response.authResponse.accessToken;
+		fb.logged_on=true;
                 fb.get_user();
 	    }
 	    else
@@ -54,6 +56,7 @@ function fb_interface(appid)
                     console.log("logging in...");
 		    if (response.authResponse) {
 			fb.accessToken = response.authResponse.accessToken;
+			fb.logged_on=true;
                         fb.get_user();
 		    }
 		}, {
@@ -67,14 +70,22 @@ function fb_interface(appid)
         console.log(to);
     };
     
-    this.request = function() {
+    this.request = function(message) {
         FB.ui(
             {method: 'apprequests',
-             message: 'My Great Request'
+             message: message
             },
-            requestCallback);
+            this.request_callback);
     };
 
+    this.send_message = function(message,link) {
+	FB.ui({
+            method: 'send',
+            name: "From Project Nightjar Egglab",
+            link: link,
+            description: message
+	});
+    }
     var fb=this;
 
     this.startup=function() {
