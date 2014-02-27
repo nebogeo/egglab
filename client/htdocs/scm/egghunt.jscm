@@ -196,8 +196,6 @@
               (lambda (c data)
                 (let ((e (JSON.parse data)))
 		  (msg "got url to send")
-		  (msg facebook.me.name)
-
 		  (if facebook.logged_on
 		      (facebook.send-message
 		       (string-append
