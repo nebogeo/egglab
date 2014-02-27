@@ -55,27 +55,74 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (define (nightjar-intro c)
-  (game-modify-render
-   (lambda (ctx)
-     (set! ctx.font "normal 40pt 'Press Start 2P'")
-     (wrap-text ctx "Easter Egg Hunt Construction Kit" 0 160 1000 50)
-     (robo-nightjar-says ctx 20 "Make easter egg hunts with my artificial eggs, and send them to your friends!"))
+  (let ((icon-x 150)
+        (icon-y 520))
+    (game-modify-render
+     (lambda (ctx)
+       (ctx.drawImage (find-image "eggs.jpg") 0 0)
+       (set! ctx.font "normal 40pt 'Press Start 2P'")
+       (wrap-text ctx "Easter Robot Nightjar's Easter Egg Hunt Construction Kit!" 0 160 1000 50)
+       (robo-nightjar-says ctx 18 "Help ecology research by making easter egg hunts with my artificial eggs, and send them to your friends!" 1)
+       (set! ctx.font "normal 15pt 'Press Start 2P'")
+       (set! ctx.globalAlpha 0.8)
+       (set! ctx.fillStyle "#ffffff")
+       (ctx.fillRect 0 (+ icon-y 140) 1500 100)
+       (set! ctx.globalAlpha 1))
    (game-modify-buttons
     (list
-     (image-button
-      "Back" 1150 720 "jumpy" (find-image "button.png")
-      (lambda (c)
-        (set! window.location main-game-url)
-        c))
-
      (image-button
       ""
       800 430
       "rotate" (find-image "yes.png")
       (lambda (c)
-        (new-egghunt c))))
-    c)))
+        (nightjar-menu c)))
+
+      (image-button
+       "" (+ icon-x 0) (+ icon-y 190) #f (find-image "sensory-ecology.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.sensoryecology.com/")
+         c))
+
+      (image-button
+       "" (+ icon-x 130) (+ icon-y 190) #f (find-image "cuckoos.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www2.zoo.cam.ac.uk/africancuckoos/home.html")
+         c))
+
+      (image-button
+       "" (+ icon-x 290) (+ icon-y 200) #f (find-image "exeter.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.exeter.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 470) (+ icon-y 190) #f (find-image "cu.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.zoo.cam.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 690) (+ icon-y 190) #f (find-image "bbsrc.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://www.bbsrc.ac.uk/")
+         c))
+
+      (image-button
+       "" (+ icon-x 900) (+ icon-y 190) #f (find-image "foam.png")
+       (lambda (c)
+         (play-sound "sound/button.wav")
+         (set! window.location "http://fo.am")
+         c))
+
+     )
+    c))))
 
 
 (define (nightjar-egghunt-builder c)
@@ -216,7 +263,13 @@
    "yes.png"
    "no.png"
    "left.png"
-   "right.png")
+   "right.png"
+   "bbsrc.png"
+   "cu.png"
+   "exeter.png"
+   "cuckoos.png"
+   "foam.png"
+   "sensory-ecology.png")
    egghuntbgs
    egg-images)
  (lambda ()
