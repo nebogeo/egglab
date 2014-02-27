@@ -67,12 +67,12 @@ function fb_interface(appid)
         console.log(to);
     };
     
-    this.request = function() {
+    this.request = function(message) {
         FB.ui(
             {method: 'apprequests',
-             message: 'My Great Request'
+             message: message
             },
-            requestCallback);
+            this.request_callback);
     };
 
     var fb=this;

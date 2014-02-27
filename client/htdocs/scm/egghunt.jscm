@@ -16,6 +16,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define facebook (new fb-interface appid))
+
 (define (make-egghunt image-index egg-ids)
   (list image-index egg-ids))
 
@@ -146,15 +148,23 @@
                     (list "y5" (draggable-y (list-ref eggs 4))))
               (lambda (c data)
                 (let ((e (JSON.parse data)))
-                  (msg data)
-                  (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
-                                 (string-append
-                                  main-game-url "/challenge.html?egghunt="
-                                  (cadr e)))
-                  (nightjar-thanks c)))))
-           c)
-          (else (js "c")))))
+		  (msg "got url to send")
+		  (msg facebook.me.name)
 
+		  (if facebook.me
+		      (facebook.request (string-append
+					 facebook.me.name
+					 " has sent you an easter egg hunt! "
+					 main-game-url "/challenge.html?egghunt="
+					 (cadr e)))
+		      (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
+				     (string-append
+				      main-game-url "/challenge.html?egghunt="
+				      (cadr e))))
+		  (nightjar-thanks c))))
+	     c))
+	  (else (js "c")))))
+      
       ) c))))
 
 (define (nightjar-thanks c)
