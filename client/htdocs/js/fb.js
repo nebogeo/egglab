@@ -17,26 +17,17 @@
 // taken from the naked on pluto codebase
 
 function fb_interface(appid)
-{
-    // startup init
-    if (appid!="")
-    {
-        var fb=this;
-        $(document).ready(function() {
-	        FB.init({appId: appid, status: true, cookie: true, xfbml: true});
-            fb.login();
-	    });
-    }
-
+{  
     this.accessToken=false;
     this.uid=false;
     this.me=null;
-
+    
     // called automatically from login
     this.get_user=function() {
         var fb=this;
         FB.api('/me', function(response) {
             fb.me = response;
+	    console.log(fb.me);
         });
     };
 
@@ -46,32 +37,36 @@ function fb_interface(appid)
         var fb=this;
         console.log("attempting login");
 
-        FB.getLoginStatus(function(response) {
+	console.log(FB);
+
+        console.log(FB.getLoginStatus(function(response) {
+            console.log(response);
             if (response.status=="connected") {
                 console.log("logged in already...");
-		        fb.uid = response.authResponse.userID;
-		        fb.accessToken = response.authResponse.accessToken;
+		fb.uid = response.authResponse.userID;
+		fb.accessToken = response.authResponse.accessToken;
                 fb.get_user();
-	        }
-	        else
-	        {
-		        FB.login(function(response) {
+	    }
+	    else
+	    {
+                console.log("trying to log in...");
+		FB.login(function(response) {
                     console.log("logging in...");
-			        if (response.authResponse) {
-			            fb.accessToken = response.authResponse.accessToken;
+		    if (response.authResponse) {
+			fb.accessToken = response.authResponse.accessToken;
                         fb.get_user();
-			        }
-		        }, {
+		    }
+		}, {
                     scope:'user_about_me'
                 });
-	        }
-	    });
+	    }
+	}));
     };
-
+    
     this.request_callback = function(request, to) {
         console.log(to);
     };
-
+    
     this.request = function() {
         FB.ui(
             {method: 'apprequests',
@@ -79,4 +74,20 @@ function fb_interface(appid)
             },
             requestCallback);
     };
+
+    var fb=this;
+
+    this.startup=function() {
+	// startup init
+	if (appid!="")
+	{
+            $(document).ready(function() {
+		console.log("facebook init");
+		FB.init({appId: appid, status: true, xfbml: true});
+		fb.login();
+	    });
+	}
+    };
+    
+    window.setTimeout(this.startup, 1000);
 }

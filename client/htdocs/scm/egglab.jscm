@@ -938,6 +938,8 @@
 
 (set! ctx.font "normal 50pt 'Press Start 2P'")
 
+(define facebook (new fb-interface appid))
+
 (load-images!
  (append
   (list
