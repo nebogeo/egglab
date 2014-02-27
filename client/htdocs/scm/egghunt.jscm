@@ -79,7 +79,7 @@
       800 430
       "rotate" (find-image "yes.png")
       (lambda (c)
-        (nightjar-menu c)))
+        (new-egghunt c)))
 
       (image-button
        "" (+ icon-x 0) (+ icon-y 190) #f (find-image "sensory-ecology.png")
@@ -199,12 +199,12 @@
 		  (msg facebook.me.name)
 
 		  (if facebook.logged_on
-		      (facebook.send-message 
+		      (facebook.send-message
 		       (string-append
 			facebook.me.name
 			" has sent you an easter egg hunt! ")
-		       (string-append 
-			main-game-url 
+		       (string-append
+			main-game-url
 			"/challenge.html?egghunt="
 			(cadr e)))
 		      (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
@@ -214,7 +214,7 @@
 		  (nightjar-thanks c))))
 	     c))
 	  (else (js "c")))))
-      
+
       ) c))))
 
 (define (nightjar-thanks c)
