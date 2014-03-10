@@ -716,15 +716,13 @@
              (nightjar-enter-name c)
              (begin
                (server-call
-                "player"
+                "add-score"
                 (list
                  (list "player-id" (egglab-data-player-id (game-data c)))
-                 (list "population" (egglab-data-land (game-data c)))
-                 (list "replicate" (egglab-data-replicate (game-data c)))
                  (list "name" (egglab-data-username (game-data c)))
                  (list "score" (egglab-data-player-time (game-data c)))
-                 (list "played-before" "#f")
-                 (list "age-range" 2)))
+                 (list "population" (egglab-data-land (game-data c)))
+                 (list "replicate" (egglab-data-replicate (game-data c)))))
                (nightjar-choose-location c))))))
      c))))
 
@@ -788,13 +786,18 @@
        (image-button "Done" 1100 700 "jumpy" (find-image "button.png")
                      (lambda (c)
                        (server-call
+                        "add-score"
+                        (list
+                         (list "player-id" (egglab-data-player-id (game-data c)))
+                         (list "name" (egglab-data-username (game-data c)))
+                         (list "score" (egglab-data-player-time (game-data c)))
+                         (list "population" (egglab-data-land (game-data c)))
+                         (list "replicate" (egglab-data-replicate (game-data c)))))
+                       (server-call
                         "player"
                         (list
                          (list "player-id" (egglab-data-player-id (game-data c)))
-                         (list "population" (egglab-data-land (game-data c)))
-                         (list "replicate" (egglab-data-replicate (game-data c)))
                          (list "name" (egglab-data-username (game-data c)))
-                         (list "score" (egglab-data-player-time (game-data c)))
                          (list "played-before" "#f")
                          (list "age-range" 2)))
                        (nightjar-choose-location c))))

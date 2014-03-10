@@ -82,11 +82,10 @@
   (list
    "player-id"
    (insert-player
-    db "" 0 (timestamp-now) "" 0 0 0)))
+    db (timestamp-now) "" 0 0)))
 
-(define (player db player-id population replicate name score played-before age-range)
-  (update-player
-   db player-id population replicate (timestamp-now) name score played-before age-range)
+(define (player db player-id name played-before age-range)
+  (update-player db player-id name played-before age-range)
   '("ok"))
 
 (define (pop-unit-tests)

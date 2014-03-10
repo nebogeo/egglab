@@ -29,7 +29,7 @@
 (define (new-egghunt c)
   (server-call-mutate
    "sample"
-   (list (list "population" "CF")
+   (list (list "population" (choose "CF" "MV" "CP"))
          (list "replicate" 0)
          (list "count" 5)
          (list "top" 100))

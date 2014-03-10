@@ -21,10 +21,11 @@
 
 (define (setup db)
   (exec/ignore db "create table egg ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, player_id integer, fitness real, individual_fitness real, generation integer, parent integer, image varchar, genotype varchar )")
-  (exec/ignore db "create table player ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, name varchar, average_score real, played_before integer, age_range integer )")
+  (exec/ignore db "create table player ( id integer primary key autoincrement, time_stamp varchar, name varchar, played_before integer, age_range integer )")
   (exec/ignore db "create table stats ( id integer primary key autoincrement, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)")
   (exec/ignore db "create table egghunt ( id integer primary key autoincrement, background varchar, challenger varchar, message varchar, score integer, timestamp varchar)")
   (exec/ignore db "create table egghunt_egg ( id integer primary key autoincrement, egghunt_id integer, egg_id integer, x integer, y integer)")
+  (exec/ignore db "create table high_scores ( id integer primary key autoincrement, player_id int, player_name varchar, average_score real, population varchar, replicate int )")
 ;;  (exec/ignore db "create table egghunt_score ( id integer primary key autoincrement. egghunt_id integer, egg_id integer, est_clicked_time integer)")
   )
 
@@ -35,21 +36,21 @@
    population replicate time-stamp player-id fitness
    individual-fitness generation parent image genotype))
 
-(define (insert-player db population replicate time-stamp name average-score
-                       played-before age-range)
+(define (insert-player db time-stamp name played-before age-range)
   (insert
-   db "insert into player values (null, ?, ?, ?, ?, ?, ?, ?)"
-   population replicate time-stamp name average-score
-   (if (equal? played-before "false") "0" "1") age-range))
+   db "insert into player values (null, ?, ?, ?, ?)"
+   time-stamp name (if (equal? played-before "false") "0" "1") age-range))
 
-(define (update-player db player-id population replicate time-stamp name average-score
-                       played-before age-range)
+(define (update-player db player-id name played-before age-range)
   (exec/ignore
-   db "update player set population=?, replicate=?, time_stamp=?, name=?, average_score=?, played_before=?, age_range=? where id = ?"
-   population replicate time-stamp name average-score
-   (if (equal? played-before "false") "0" "1") age-range
+   db "update player set name=?, played_before=?, age_range=? where id = ?"
+   name (if (equal? played-before "false") "0" "1") age-range
    player-id))
 
+(define (insert-score db player-id name average-score population replicate)
+  (exec/ignore
+   db "insert into high_scores values (null, ?, ?, ?, ?, ?)"
+   player-id name average-score population replicate))
 
 (define (insert-stats db time-stamp egg-count av-fitness max-fitness min-fitness)
   (insert
@@ -132,7 +133,7 @@
 (define (hiscores db population count)
   (let ((s (select
             db (string-append
-                "select p.name, p.average_score from player as p "
+                "select p.player_name, p.average_score from high_scores as p "
                 "where p.population = ? "
                 "order by p.average_score limit ?")
             population count)))

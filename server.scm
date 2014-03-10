@@ -136,16 +136,29 @@
         (init-player db)))))
 
    (register
-    (req 'player '(player-id population replicate name score played-before age-range))
-    (lambda (player-id population replicate name score played-before age-range)
+    (req 'player '(player-id name played-before age-range))
+    (lambda (player-id name played-before age-range)
       (pluto-response
        (scheme->json
-        (player db player-id population
-                (string->number replicate)
-                name
-                (string->number score)
-                played-before
-                (string->number age-range))))))
+        (player
+         db
+         (string->number player-id)
+         name
+         played-before
+         (string->number age-range))))))
+
+   (register
+    (req 'add-score '(player-id name score population replicate))
+    (lambda (player-id name score population replicate)
+      (insert-score
+       db
+       (string->number player-id)
+       name
+       (string->number score)
+       population
+       (string->number replicate))
+      (pluto-response
+       (scheme->json '("ok")))))
 
    (register
     (req 'hiscores '(count))
