@@ -21,7 +21,7 @@
 
 (define pop-size 1024)
 (define av-record-count 0)
-(define av-record-period 1)
+(define av-record-period 10)
 
 (define (pop-add db population replicate player-id fitness individual-fitness generation parent image genotype)
   (exec/ignore db "begin transaction")
@@ -34,13 +34,9 @@
           (set! av-record-count 0)
           (let ((stats
                  (cadr (select
-                        db (string-append
-                            "select count(e.fitness), avg(e.fitness), max(e.fitness), min(e.fitness) from egg as e "
-                            "where e.population = ? and "
-                            "e.replicate = ?")
-                        population replicate))))
+                        db "select count(e.fitness), avg(e.fitness), max(e.fitness), min(e.fitness) from egg as e"))))
             (insert-stats
-             db population replicate timestamp
+             db timestamp
              (vector-ref stats 0) ;; count
              (inexact->exact (round (vector-ref stats 1))) ;; average
              (inexact->exact (round (vector-ref stats 2))) ;; max
@@ -82,11 +78,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; game stuff
 
-(define (player db population replicate name score played-before age-range)
+(define (init-player db)
   (list
    "player-id"
    (insert-player
-    db population replicate (timestamp-now) name score played-before age-range)))
+    db "" 0 (timestamp-now) "" 0 0 0)))
+
+(define (player db player-id population replicate name score played-before age-range)
+  (update-player
+   db player-id population replicate (timestamp-now) name score played-before age-range)
+  '("ok"))
 
 (define (pop-unit-tests)
   ;; db

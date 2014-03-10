@@ -22,7 +22,7 @@
 (define (setup db)
   (exec/ignore db "create table egg ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, player_id integer, fitness real, individual_fitness real, generation integer, parent integer, image varchar, genotype varchar )")
   (exec/ignore db "create table player ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, name varchar, average_score real, played_before integer, age_range integer )")
-  (exec/ignore db "create table stats ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)")
+  (exec/ignore db "create table stats ( id integer primary key autoincrement, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)")
   (exec/ignore db "create table egghunt ( id integer primary key autoincrement, background varchar, challenger varchar, message varchar, score integer, timestamp varchar)")
   (exec/ignore db "create table egghunt_egg ( id integer primary key autoincrement, egghunt_id integer, egg_id integer, x integer, y integer)")
 ;;  (exec/ignore db "create table egghunt_score ( id integer primary key autoincrement. egghunt_id integer, egg_id integer, est_clicked_time integer)")
@@ -42,10 +42,19 @@
    population replicate time-stamp name average-score
    (if (equal? played-before "false") "0" "1") age-range))
 
-(define (insert-stats db population replicate time-stamp egg-count av-fitness max-fitness min-fitness)
+(define (update-player db player-id population replicate time-stamp name average-score
+                       played-before age-range)
+  (exec/ignore
+   db "update player set population=?, replicate=?, time_stamp=?, name=?, average_score=?, played_before=?, age_range=? where id = ?"
+   population replicate time-stamp name average-score
+   (if (equal? played-before "false") "0" "1") age-range
+   player-id))
+
+
+(define (insert-stats db time-stamp egg-count av-fitness max-fitness min-fitness)
   (insert
-   db "insert into stats values (NULL, ?, ?, ?, ?, ?, ?, ?)"
-   population replicate time-stamp egg-count av-fitness max-fitness min-fitness))
+   db "insert into stats values (NULL, ?, ?, ?, ?, ?)"
+   time-stamp egg-count av-fitness max-fitness min-fitness))
 
 (define (insert-egghunt db background challenger message score)
   (insert
@@ -120,13 +129,13 @@
         (sample-egg db population replicate count (inexact->exact (round (car f)))))))
 
 ;; random selection of count entities
-(define (hiscores db population replicate count)
+(define (hiscores db population count)
   (let ((s (select
             db (string-append
                 "select p.name, p.average_score from player as p "
-                "where p.population = ? and p.replicate = ? "
+                "where p.population = ? "
                 "order by p.average_score limit ?")
-            population replicate count)))
+            population count)))
     (if (null? s)
         '()
         (map
@@ -135,13 +144,13 @@
          (cdr s)))))
 
 ;; top n eggs
-(define (top-eggs db population replicate count)
+(define (top-eggs db population count)
   (let ((s (select
             db (string-append
                 "select e.genotype, e.fitness, e.id from egg as e "
-                "where e.population = ? and e.replicate = ? "
+                "where e.population = ? "
                 "order by e.fitness desc limit ?")
-            population replicate count)))
+            population count)))
     (if (null? s)
         '()
         (map
@@ -151,18 +160,16 @@
                  (vector-ref i 2)))
          (cdr s)))))
 
-(define (get-stats db population replicate count)
+(define (get-stats db count)
   (let ((s (select
             db (string-append
                 "select s.av_fitness, s.max_fitness, s.min_fitness, s.egg_count, s.time_stamp from stats as s "
-                "where s.population = ? and s.replicate = ? "
                 "order by s.time_stamp desc limit ?")
-            population replicate count)))
+            count)))
     (if (null? s)
         '()
         (map
          (lambda (i)
-           (msg (vector-ref i 4))
            (list (vector-ref i 0)
                  (vector-ref i 1)
                  (vector-ref i 2)

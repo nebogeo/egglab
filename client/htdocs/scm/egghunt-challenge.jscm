@@ -233,7 +233,7 @@
      (wrap-text ctx "Thankyou for playing my easter egg hunt!" 0 100 1000 1000)
      (set! ctx.font "normal 20pt 'Press Start 2P'")
      (set! ctx.fillStyle "#000")
-     (robo-nightjar-bot-right ctx))
+     (robo-nightjar-bot-right ctx 20 "Help discover new egg patterns by playing the game, or find out more."))
 
    (game-modify-buttons
     (list
@@ -278,6 +278,7 @@
    "bubble.png"
    "bubble2.png"
    "bubble3.png"
+   "bubble4.png"
    "ren.png"
    "ren-eye1.png"
    "ren-eye2.png"

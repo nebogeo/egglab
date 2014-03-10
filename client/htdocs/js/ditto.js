@@ -574,13 +574,19 @@ function init(filenames) {
         }
 
         var js=ditto.load("scm/base.jscm");
+        console.log("pre-eval scm/base.jscm");
+        eval(js);
         js+=ditto.load("scm/nightjar.jscm");
+        console.log("pre-eval scm/nighjar.jscm");
+        eval(js);
         filenames.forEach(function(filename) {
             js+=ditto.load(filename);
+            console.log("pre-eval "+filename);
+            eval(js);
         });
 
         try {
-            eval(js);
+//            eval(js);
         } catch (e) {
             console.log("An error occured parsing "+js);
             console.log(e);

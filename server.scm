@@ -68,8 +68,8 @@
          image (escape-quotes genotype))))))
 
    (register
-    (req 'sample '(population replicate count top))
-    (lambda (population replicate count top)
+    (req 'sample '(player-id population replicate count top))
+    (lambda (player-id population replicate count top)
       (let ((samples (sample-eggs-from-top
                       db
                       population
@@ -78,7 +78,12 @@
                       (string->number top))))
         (pluto-response
          (scheme->json
-          samples)))))
+          (list
+           ;; init the player if needed, at the same time
+           (if (eq? (string->number player-id) 0)
+               (init-player db)
+               (list "player-id" (string->number player-id)))
+           samples))))))
 
 
 ;   (pluto-response
@@ -98,13 +103,14 @@
 
 
    (register
-    (req 'top-eggs '(population replicate count))
-    (lambda (population replicate count)
+    (req 'top-eggs '(count))
+    (lambda (count)
       (pluto-response
        (scheme->json
-        (top-eggs db population
-                  (string->number replicate)
-                  (string->number count))))))
+        (list
+         (top-eggs db "CF" (string->number count))
+         (top-eggs db "MV" (string->number count))
+         (top-eggs db "CP" (string->number count)))))))
 
    (register
     (req 'family-tree '(id))
@@ -114,21 +120,27 @@
         (family-tree db (string->number id))))))
 
    (register
-    (req 'get-stats '(population replicate count))
-    (lambda (population replicate count)
+    (req 'get-stats '(count))
+    (lambda (count)
       (pluto-response
        (string-append
         (scheme->json
          (get-stats
-          db population (string->number replicate)
-          (string->number count)))))))
+          db (string->number count)))))))
 
    (register
-    (req 'player '(population replicate name score played-before age-range))
-    (lambda (population replicate name score played-before age-range)
+    (req 'init-player '())
+    (lambda ()
       (pluto-response
        (scheme->json
-        (player db population
+        (init-player db)))))
+
+   (register
+    (req 'player '(player-id population replicate name score played-before age-range))
+    (lambda (player-id population replicate name score played-before age-range)
+      (pluto-response
+       (scheme->json
+        (player db player-id population
                 (string->number replicate)
                 name
                 (string->number score)
@@ -136,12 +148,15 @@
                 (string->number age-range))))))
 
    (register
-    (req 'hiscores '(population replicate count))
-    (lambda (population replicate count)
+    (req 'hiscores '(count))
+    (lambda (count)
       (pluto-response
        (scheme->json
-        (hiscores db population (string->number replicate) (string->number count)))
-       )))
+        (list
+         (hiscores db "CF" (string->number count))
+         (hiscores db "MV" (string->number count))
+         (hiscores db "CP" (string->number count)))
+        ))))
 
    (register
     (req 'addegghunt '(background challenger message egg1 x1 y1 egg2 x2 y2 egg3 x3 y3 egg4 x4 y4 egg5 x5 y5))

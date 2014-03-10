@@ -161,7 +161,7 @@
 
 (define (rect-button name x y w h jitter callback)
       (list "rect-button" name x y w h
-            jitter callback #f (rndf)))
+            jitter callback #f (rndf) #f))
 
 (define (image-button name x y jitter drawable callback)
   (list "image-button"
@@ -171,10 +171,11 @@
         drawable.width
         drawable.height
         jitter callback drawable
-        (rndf)))
+        (rndf)
+        #f))
 
 (define (circle-button name x y r callback)
-  (list "circle-button" name x y r r #f callback #f (rndf)))
+  (list "circle-button" name x y r r #f callback #f (rndf) #f))
 
 (define (button-type b) (list-ref b 0))
 (define (button-name b) (list-ref b 1))
@@ -187,6 +188,9 @@
 (define (button-callback b) (list-ref b 7))
 (define (button-drawable b) (list-ref b 8))
 (define (button-offs b) (list-ref b 9))
+(define (button-mouse-over b) (list-ref b 10))
+(define (button-modify-mouse-over b v) (list-replace b 10 v))
+
 
 (define (dist-2d x1 y1 x2 y2)
   (let ((x (- x2 x1))
@@ -216,16 +220,21 @@
 
 
 (define (button-text-jumpy-render! b t)
+  (set! ctx.font "normal 30pt 'Press Start 2P'")
+  (set! ctx.fillStyle "#fff")
   (let ((m (ctx.measureText (button-name b)))
         (cm (ctx.measureText "w"))
+        (pos 0)
         (txt (button-name b)))
     (let ((ta (txt.split ""))
           (x (- (/ (button-w b) 2) (/ m.width 2)))
           (y (+ (/ (button-h b) 2) 5)))
       (index-for-each
        (lambda (i c)
-         (ctx.fillText c (+ x (* i cm.width))
-                       (+ y (* 3 (sin (+ (* t 0.01) i))))))
+         (set! cm (ctx.measureText c))
+         (ctx.fillText c (+ x pos)
+                       (+ y (* 3 (sin (+ (* t 0.01) i)))))
+         (set! pos (+ pos cm.width)))
        ta))))
 
 (define (to-hex c)
@@ -253,8 +262,8 @@
                               (* 256 (sin (+ (* t 0.003) i)))
                               (* 256 (sin (+ (* t 0.004) i)))))
          (set! cm (ctx.measureText c))
-         (set! pos (+ pos cm.width))
-         (ctx.fillText c (+ x pos) y))
+         (ctx.fillText c (+ x pos) y)
+         (set! pos (+ pos cm.width)))
        ta))))
 
 (define (button-text-flashy-render! b t)
@@ -303,14 +312,21 @@
         (list #t (fn c)))
       (list #f c)))
 
-(define (button-update! b mx my c)
-  (cond
-   ((eq? (button-type b) "rect-button")
-    (rect-button-update! b mx my c))
-   ((eq? (button-type b) "image-button")
-    (rect-button-update! b mx my c))
-   (else
-    (circle-button-update! b mx my c))))
+(define (button-update! b e mx my c)
+  (if (eq? e "move")
+      (let ((fn (button-mouse-over b)))
+        (if (and fn (in-rect? (button-x b) (button-y b)
+                              (button-w b) (button-h b)
+                              mx my))
+            (list #t (fn c))
+            (list #f c)))
+      (cond
+       ((eq? (button-type b) "rect-button")
+        (rect-button-update! b mx my c))
+       ((eq? (button-type b) "image-button")
+        (rect-button-update! b mx my c))
+       (else
+        (circle-button-update! b mx my c)))))
 
 (define (rect-button-render! ctx t b)
   (when #f
@@ -353,18 +369,17 @@
 
 ;; ----------------------------------------
 
-(define (button-inner-update b mx my c)
+(define (button-inner-update b e mx my c)
   (foldl
    (lambda (b r)
      (if (not (car r)) ;; if event not handled
-         (button-update! b mx my (cadr r))
+         (button-update! b e mx my (cadr r))
          (js "r")))
    (list #f c)
    b))
 
-(define (buttons-update b mx my c)
-  (let ((r (button-inner-update b mx my c)))
-    (cadr r)))
+(define (buttons-update b e mx my c)
+  (button-inner-update b e mx my c))
 
 (define (buttons-render! ctx t b)
   (for-each
@@ -593,7 +608,8 @@
 
 (define (make-new-game)
   (list 0 (lambda (ctx) 0) (lambda (t c) c)
-        () () 0 0 () (list 0 0)))
+        () () 0 0 () (list 0 0) (lambda (e c) c)
+        (lambda (c) c)))
 
 (define (game-time g) (list-ref g 0))
 (define (game-modify-time v g) (list-replace g 0 v))
@@ -613,23 +629,37 @@
 (define (game-modify-my v g) (list-replace g 7 v))
 (define (game-world-offset g) (list-ref g 8))
 (define (game-modify-world-offset g v) (list-replace g 8 v))
+(define (game-mouse-hook g) (list-ref g 9))
+(define (game-modify-mouse-hook v g) (list-replace g 9 v))
+(define (game-over-nothing-hook g) (list-ref g 10))
+(define (game-modify-over-nothing-hook v g) (list-replace g 10 v))
 
 (define (game-modify-mouse g x y)
   (game-modify-mx
-   x (game-modify-my y g)))
+    x (game-modify-my y g)))
 
 (define (game-mouse-down g mx my)
-  (draggables-update
-   "down" mx my 0 0
-   (buttons-update (game-buttons g) mx my
-                   (game-modify-mouse g mx my))))
+  (let ((fn (game-mouse-hook g)))
+    (fn
+     "down"
+     (draggables-update
+      "down" mx my 0 0
+      (cadr
+       (buttons-update (game-buttons g) "down" mx my
+                       (game-modify-mouse g mx my)))))))
 
 (define (game-mouse-move g mx my)
-  (game-modify-mouse
-   (draggables-update
-    "move" mx my
-    (- mx (game-mx g))
-    (- my (game-my g)) g) mx my))
+  (let ((ret (buttons-update
+              (game-buttons g) "move" mx my
+              (game-modify-mouse
+               (draggables-update
+                "move" mx my
+                (- mx (game-mx g))
+                (- my (game-my g)) g) mx my)))
+        (over-nothing (game-over-nothing-hook g)))
+    (if (not (car ret))
+        (over-nothing g)
+        g)))
 
 (define (game-mouse-up g mx my)
   (game-modify-mouse

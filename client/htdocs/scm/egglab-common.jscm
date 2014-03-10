@@ -303,6 +303,19 @@
           (set! robo-state "none")))
    (else 0)))
 
+(define (egglab-button text x y image tooltip fn)
+    (button-modify-mouse-over
+     (image-button
+      text x y "slidy" image fn)
+     (lambda (c)
+       (game-modify-data
+        (lambda (d)
+          (egglab-data-modify-tooltip d tooltip))
+        c))))
+
+(define (text-or-tooltip c text)
+  (if (eq? (egglab-data-tooltip (game-data c)) "")
+      text (egglab-data-tooltip (game-data c))))
 
 (define (robo-nightjar-says ctx size text)
   (robo-state-machine)
@@ -314,16 +327,25 @@
   (set! ctx.font "normal 15pt 'Press Start 2P'")
   (set! ctx.fillStyle "#fff"))
 
-(define (robo-nightjar-bot-right ctx)
+(define (robo-nightjar-bot-right ctx size text)
   (robo-state-machine)
   (ctx.save)
   (ctx.scale -1 1)
   (ctx.drawImage (find-image robo-image) -1200 530)
-  (ctx.restore))
+  (ctx.drawImage (find-image "bubble4.png") -1200 240)
+  (ctx.restore)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text 450 280 280 size+12))
 
-(define (robo-nightjar-bot-left ctx)
+(define (robo-nightjar-bot-left ctx size text)
   (robo-state-machine)
-  (ctx.drawImage (find-image robo-image) 50 580))
+  (ctx.drawImage (find-image robo-image) 50 580)
+  (ctx.drawImage (find-image "bubble4.png") 50 340)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text -425 380 260 size+12)
+  )
 
 (define (robo-nightjar-says-bottom ctx size text)
   (robo-state-machine)
@@ -331,7 +353,7 @@
   (ctx.drawImage (find-image "bubble2.png") 360 640)
   (set! ctx.fillStyle "#000")
   (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
-  (wrap-text ctx text -10 670 350 size+8)
+  (wrap-text ctx text -10 670 360 size+8)
   (set! ctx.font "normal 15pt 'Press Start 2P'")
   (set! ctx.fillStyle "#fff"))
 

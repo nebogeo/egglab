@@ -168,7 +168,7 @@
           c)))
 
       (image-button
-       "Send" 1170 700 "flashy" (find-image "button.png")
+       "Send" 1170 700 "jumpy" (find-image "button.png")
        (lambda (c)
          (cond
           ((eq? (length (draggable-children (car (game-draggables c)))) 5)
@@ -222,7 +222,7 @@
      (wrap-text ctx "Thankyou for making an easter egg hunt!" 0 100 1000 1000)
      (set! ctx.font "normal 20pt 'Press Start 2P'")
      (set! ctx.fillStyle "#000")
-     (robo-nightjar-bot-right ctx))
+     (robo-nightjar-bot-right ctx 20 "Now try playing the game and help generating new egg patterns."))
 
    (game-modify-buttons
     (list
@@ -232,7 +232,7 @@
       (lambda (c) (new-egghunt c)))
 
      (image-button
-      "Back to the main game" 600 400 "slidy" (find-image "bigbutton-2.png")
+      "Go to the main game" 600 400 "slidy" (find-image "bigbutton-2.png")
       (lambda (c)
         (set! window.location main-game-url)
         c))
@@ -263,6 +263,7 @@
    "bubble.png"
    "bubble2.png"
    "bubble3.png"
+   "bubble4.png"
    "eggrow.png"
    "ren.png"
    "ren-eye1.png"
