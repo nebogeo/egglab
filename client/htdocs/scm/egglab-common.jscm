@@ -19,6 +19,8 @@
 
 (define egg-complexity 6)
 (define main-game-url "http://nightjar.exeter.ac.uk/egglab")
+(define replicate-start 0)
+(define num-replicates 20)
 
 (define egg-images
   (build-list 20 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))

@@ -29,30 +29,33 @@
 (define (new-egghunt c)
   (server-call-mutate
    "sample"
-   (list (list "population" (choose "CF" "MV" "CP"))
-         (list "replicate" 0)
-         (list "count" 5)
-         (list "top" 100))
+   (list
+    (list "player-id" 1)
+    (list "population" (choose (list "CF" "MV" "CP")))
+    (list "replicate" (random num-replicates))
+    (list "count" 5)
+    (list "top" 100))
    (lambda (c data)
      (let ((e (JSON.parse data)))
-       (game-modify-draggables
-        (cons
-         (draggable-horizontal
-          120 300
-          (find-image (list-ref egghuntbgs 0))
-          (lambda (c) c))
-         (index-map
-          (lambda (i egg)
-            (draggable
-             (list-ref egg 3)
-             (+ 640 (* i 100)) 720
-             (egg-drawable (JSON.parse (car egg)))
-             (lambda (c) c)))
-          e))
-        (nightjar-egghunt-builder
-         (game-modify-data
-          (lambda (d) (make-egghunt 0 (map (lambda (egg) (list-ref egg 3)) e)))
-          c))))))
+       (let ((samples (cadr e)))
+         (game-modify-draggables
+          (cons
+           (draggable-horizontal
+            120 300
+            (find-image (list-ref egghuntbgs 0))
+            (lambda (c) c))
+           (index-map
+            (lambda (i egg)
+              (draggable
+               (list-ref egg 3)
+               (+ 640 (* i 100)) 720
+               (egg-drawable (JSON.parse (car egg)))
+               (lambda (c) c)))
+            samples))
+          (nightjar-egghunt-builder
+           (game-modify-data
+            (lambda (d) (make-egghunt 0 (map (lambda (egg) (list-ref egg 3)) e)))
+            c)))))))
   c)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

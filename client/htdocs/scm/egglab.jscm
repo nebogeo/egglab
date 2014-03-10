@@ -22,8 +22,6 @@
 (define num-best-eggs 16)
 (define selection-pop-size 256)
 (define photo-time-allowed 10)
-(define replicate-start 0)
-(define num-replicates 20)
 
 (define (make-individual fitness ancestral-fitness generation parent drawable egg pos)
   (list fitness ancestral-fitness generation parent drawable egg pos))
