@@ -159,13 +159,18 @@
                               (if (eq? d 0) 200 180))
             (ctx.restore))))))
 
-(define (draw-egg-genome ctx egg centrex centrey)
-  (ctx.beginPath)
-  (ctx.arc centrex centrey 500 0 (* 2 Math.PI) #f)
-  (set! ctx.fillStyle "#278")
-  (ctx.fill)
-  (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 65)
-  (set! ctx.fillStyle "#fff"))
+(define (render-egg-genome ctx egg centrex centrey)
+  (let ((canvas (document.createElement "canvas")))
+    (set! canvas.width screen-width)
+    (set! canvas.height screen-height)
+    (let ((ctx (canvas.getContext "2d")))
+      (ctx.beginPath)
+      (ctx.arc centrex centrey 500 0 (* 2 Math.PI) #f)
+      (set! ctx.fillStyle "#278")
+      (ctx.fill)
+      (inner-draw-genome ctx (individual-egg egg) centrex centrey 0 0 (* 2 3.141) 65)
+      (set! ctx.fillStyle "#fff"))
+    canvas))
 
 (define (draw-egg-family-tree ctx ancestors)
 
@@ -955,16 +960,17 @@
               fitness (car pos) (cadr pos) #f
               (individual-drawable egg)
               (lambda (c)
-                (nightjar-egg-view c egg))))))
-
+                (nightjar-egg-view
+                 c egg
+                 (render-egg-genome ctx egg (/ screen-width 2) (/ screen-height 2))))))))
        (egglab-data-eggs (game-data c))))
      c))))
 
-(define (nightjar-egg-view c egg)
+(define (nightjar-egg-view c egg image)
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (draw-egg-genome ctx egg (/ screen-width 2) (/ screen-height 2))
+     (ctx.drawImage image 0 0)
      (ctx.fillText "Egg pattern construction" 20 50))
    (game-modify-buttons
     (list
@@ -972,17 +978,17 @@
       "Back" 1150 720 #f (find-image "button.png")
       (lambda (c)
         (nightjar-best c)))
-     (image-button
-      "Family Tree" 1150 520 #f (find-image "button.png")
-      (lambda (c)
-        (server-call-mutate
-         "family-tree"
-         (list (list "id" (individual-id egg))) ;; only works for the viz screens
-         (lambda (c data)
-           (msg data)
-           (nightjar-family-tree c egg (JSON.parse data))))
-        c))
-    )
+;;   (image-button
+;;      "Family Tree" 1150 520 #f (find-image "button.png")
+;;      (lambda (c)
+;;        (server-call-mutate
+;;         "family-tree"
+;;         (list (list "id" (individual-id egg))) ;; only works for the viz screens
+;;         (lambda (c data)
+;;           (msg data)
+;;           (nightjar-family-tree c egg (JSON.parse data))))
+;;        c))
+     )
     c)))
 
 (define (nightjar-family-tree c egg ancestors)

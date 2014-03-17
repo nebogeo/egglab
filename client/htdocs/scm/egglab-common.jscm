@@ -21,9 +21,38 @@
 (define main-game-url "http://nightjar.exeter.ac.uk/egglab")
 (define replicate-start 0)
 (define num-replicates 20)
+(define num-variations 8)
 
-(define egg-images
-  (build-list 20 (lambda (i) (+ "themes/natural/" (+ i 1) ".png"))))
+(define egg-constant-images
+  (build-list 8 (lambda (i) (+ "themes/huge/" (+ i 1) ".png"))))
+
+(define egg-varying-filenames
+  (foldl
+   (lambda (colour r)
+     (append
+      r (foldl
+         (lambda (scale r)
+           (append
+            r
+            (list (string-append colour "-s" scale ".png"))
+            (map
+             (lambda (thresh)
+               (string-append colour "-s" scale "-t" thresh ".png"))
+             (list "94" "160"))))
+         () (list "8" "16" "32" "64"))))
+   () (list "black" "white")))
+
+(define egg-varying-images
+  (foldl
+   (lambda (vary r)
+     (append
+      r (map
+         (lambda (fn)
+           (string-append "/themes/huge/v" vary "/" fn))
+         egg-varying-filenames)))
+   () (build-list num-variations (lambda (i) i))))
+
+(define egg-images (append egg-constant-images egg-varying-images))
 
 (define (transform x y r s) (list x y r s))
 
@@ -42,11 +71,17 @@
 ;; a terminal can either be an image with a transform or a flat colour
 (define (make-terminal)
   (if (< (rndf) 0.5)
-      (list
-       "terminal"
-       "image"
-       (transform (random 127) (random 127) (* (rndf) 6.282) 1)
-       (choose egg-images))
+      (if (< (rndf) 0.5)
+          (list
+           "terminal"
+           "constant-image"
+           (transform (random 127) (random 127) (* (rndf) 6.282) 1)
+           (choose egg-constant-images))
+          (list
+           "terminal"
+           "varying-image"
+           (transform (random 127) (random 127) (* (rndf) 6.282) 1)
+           (choose egg-varying-filenames)))
       (list
        "terminal"
        "colour"
@@ -60,17 +95,24 @@
 (define (terminal-colour t) (list-ref t 2))
 
 (define (terminal-mutate t r)
-  (if (eq? (terminal-type t) "image")
-      (list
-       "terminal" "image"
-       (transform-mutate (terminal-transform t) r)
-       (if (> r (rndf))
-           (choose egg-images)
-           (terminal-image t)))
+  (if (eq? (terminal-type t) "colour")
       (list "terminal" "colour"
             (if (> r (rndf))
                 (list (random 256) (random 256) (random 256) (random 256))
-                (terminal-colour t)))))
+                (terminal-colour t)))
+      (if (eq? (terminal-type t) "constant-image")
+          (list
+           "terminal" "constant-image"
+           (transform-mutate (terminal-transform t) r)
+           (if (> r (rndf))
+               (choose egg-constant-images)
+               (terminal-image t)))
+          (list
+           "terminal" "varying-image"
+           (transform-mutate (terminal-transform t) r)
+           (if (> r (rndf))
+               (choose egg-varying-filenames)
+               (terminal-image t))))))
 
 (define (list-clone l) (map (lambda (e) e) l))
 (define (terminal-clone l) (list-clone l))
@@ -178,37 +220,41 @@
 
 (define (draw-terminal ctx program)
   (cond
-   ((eq? (terminal-type program) "image")
-    (ctx.save)
-    (set! ctx.fillStyle
-          (ctx.createPattern
-           (find-image (terminal-image program) image-lib) "repeat"))
-
-    (ctx.translate 64 64)
-    (ctx.rotate (transform-rotate (terminal-transform program)))
-    (ctx.translate -64 -64)
-
-    (ctx.translate (transform-x (terminal-transform program))
-                   (transform-y (terminal-transform program)))
-    ;;        (ctx.scale (transform-scale (terminal-transform program))
-    ;;                   (transform-scale (terminal-transform program)))
-    (ctx.fillRect (- 0 (transform-x (terminal-transform program)) 256)
-                  (- 0 (transform-y (terminal-transform program)) 256)
-                  (* 256 2) (* 256 2))
-    ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
-    ;;                   (/ 1 (transform-scale (terminal-transform program))))
-    ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
-    ;;               (- 0 (transform-y (terminal-transform program))))
-    (ctx.restore))
-   (else
+   ((eq? (terminal-type program) "colour")
     (set! ctx.fillStyle (string-append
                          "rgba("
                          (list-ref (terminal-colour program) 0) ","
                          (list-ref (terminal-colour program) 1) ","
                          (list-ref (terminal-colour program) 2) ","
                          (list-ref (terminal-colour program) 3) ")"))
-    (ctx.fillRect 0 0 128 128))))
+    (ctx.fillRect 0 0 128 128))
+   (else
+    (let ((image-name
+           (if (eq? (terminal-type program) "constant-image")
+               (terminal-image program)
+               (string-append "/themes/huge/v" (random num-variations) "/"
+                              (terminal-image program)))))
+      (ctx.save)
+      (set! ctx.fillStyle
+            (ctx.createPattern
+             (find-image image-name image-lib) "repeat"))
 
+      (ctx.translate 64 64)
+      (ctx.rotate (transform-rotate (terminal-transform program)))
+      (ctx.translate -64 -64)
+
+      (ctx.translate (transform-x (terminal-transform program))
+                     (transform-y (terminal-transform program)))
+      ;;        (ctx.scale (transform-scale (terminal-transform program))
+      ;;                   (transform-scale (terminal-transform program)))
+      (ctx.fillRect (- 0 (transform-x (terminal-transform program)) 256)
+                    (- 0 (transform-y (terminal-transform program)) 256)
+                    (* 256 2) (* 256 2))
+      ;;        (ctx.scale (/ 1 (transform-scale (terminal-transform program)))
+      ;;                   (/ 1 (transform-scale (terminal-transform program))))
+      ;;(ctx.translate (- 0 (transform-x (terminal-transform program)))
+      ;;               (- 0 (transform-y (terminal-transform program))))
+      (ctx.restore)))))
 
 (define (draw-op ctx program)
   (let ((tcanvas (document.createElement "canvas")))
