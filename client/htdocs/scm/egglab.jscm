@@ -319,13 +319,13 @@
      )
     c))))
 
-(define (bg-full-path path fn)
-  (string-append "/bg/" path "/" fn))
+(define (bg-full-path fn)
+  (string-append "/bg/" fn))
 
 (define (async-load-images c path l)
   (for-each
    (lambda (i)
-     (let ((fullpath (bg-full-path path i)))
+     (let ((fullpath (bg-full-path i)))
        (load-image-mutate
         (lambda (c)
           (game-modify-data
@@ -415,7 +415,7 @@
      (find-image "medbutton-1.png")
      "This nightjar is not fussy and likes to nest anywhere."
      (lambda (c)
-       (async-load-images c "MV" mv_images)
+       (async-load-images c "MV" (append cf_images cp_images))
        (nightjar-research
         "flicker"
         (game-modify-data
@@ -845,7 +845,7 @@
             (cond
              ((eq? land "CF") cf_images)
              ((eq? land "CP") cp_images)
-             ((eq? land "MV") mv_images)
+             ((eq? land "MV") (append cf_images cp_images))
              (else (msg "oops") cf_images)))))))
    c))
 
@@ -1046,122 +1046,94 @@
  (lambda ()
    (start-game canvas ctx)))
 
-
 (define cf_images
-  (list "_CF_CF001_Eggs_L_Control_2m_DSC_0144.jpg"
-        "_CF_CF001_Eggs_R_Control_2m_DSC_0183.jpg"
-        "_CF_CF002_Eggs_L_Control_2m_DSC_0367.jpg"
-        "_CF_CF002_Eggs_R_Control_2m_DSC_0403.jpg"
-        "_CF_CF003_Eggs_L_Control_2m_DSC_0586.jpg"
-        "_CF_CF003_Eggs_R_Control_2m_DSC_0622.jpg"
-        "_CF_CF004_Eggs_L_Control_2m_DSC_1516.jpg"
-        "_CF_CF004_Eggs_R_Control_2m_DSC_1558.jpg"
-        "_CF_CF005_Eggs_L_Control_2m_DSC_1307.jpg"
-        "_CF_CF005_Eggs_R_Control_2m_DSC_1343.jpg"
-        "_CF_CF006_Eggs_L_Control_2m_DSC_0818.jpg"
-        "_CF_CF006_Eggs_R_Control_2m_DSC_0854.jpg"
-        "_CF_CF009_Eggs_L_Control_2m_DSC_1139.jpg"
-        "_CF_CF009_Eggs_R_Control_2m_DSC_1178.jpg"
-        "_CF_CF010_Eggs_L_Control_2m_DSC_1603.jpg"
-        "_CF_CF010_Eggs_R_Control_2m_DSC_1645.jpg"
-        "_CF_CF011_Eggs_L_Control_2m_DSC_1780.jpg"
-        "_CF_CF011_Eggs_R_Control_2m_DSC_1822.jpg"
-        "_CF_CF012_Eggs_L_Control_2m_DSC_2032.jpg"
-        "_CF_CF012_Eggs_R_Control_2m_DSC_2074.jpg"
-        "_CF_CF013_Eggs_L_Control_2m_DSC_2206.jpg"
-        "_CF_CF013_Eggs_R_Control_2m_DSC_2251.jpg"
-        "_CF_CF014_Eggs_L_Control_2m_DSC_2293.jpg"
-        "_CF_CF014_Eggs_R_Control_2m_DSC_2335.jpg"
-        "_CF_CF015_Eggs_L_Control_2m_DSC_2812.jpg"
-        "_CF_CF015_Eggs_R_Control_2m_DSC_2854.jpg"
-        "_CF_CF017_Eggs_L_Control_2m_DSC_3796.jpg"
-        "_CF_CF017_Eggs_R_Control_2m_DSC_3841.jpg"
-        "_CF_CF020_Eggs_L_Control_2m_DSC_5035.jpg"
-        "_CF_CF020_Eggs_R_Control_2m_DSC_5083.jpg"
-        "_CF_CF021_Eggs_L_Control_2m_DSC_4936.jpg"
-        "_CF_CF021_Eggs_R_Control_2m_DSC_4987.jpg"
-        "_CF_CF022_Eggs_L_Control_2m_DSC_5443.jpg"
-        "_CF_CF022_Eggs_R_Control_2m_DSC_5491.jpg"
-        "_CF_CF024_Eggs_L_Control_2m_DSC_5884.jpg"
-        "_CF_CF024_Eggs_R_Control_2m_DSC_5932.jpg"
-        "_CF_CF025_Eggs_L_Control_2m_DSC_6082.jpg"
-        "_CF_CF025_Eggs_R_Control_2m_DSC_6130.jpg"
-        "_CF_CF026_Eggs_L_Control_2m_DSC_5983.jpg"
-        "_CF_CF026_Eggs_R_Control_2m_DSC_6031.jpg"
-        "_CF_CF027_Eggs_L_Control_2m_DSC_6574.jpg"
-        "_CF_CF027_Eggs_R_Control_2m_DSC_6622.jpg"
-        "_CF_CF028_Eggs_L_Control_2m_DSC_6469.jpg"
-        "_CF_CF028_Eggs_R_Control_2m_DSC_6520.jpg"
-        "_CF_CF029_Eggs_L_Control_2m_DSC_6769.jpg"
-        "_CF_CF029_Eggs_R_Control_2m_DSC_6817.jpg"
-        "_CF_CF031_Eggs_L_Control_2m_DSC_7789.jpg"
-        "_CF_CF031_Eggs_R_Control_2m_DSC_7837.jpg"
-        "_CF_CF032_Eggs_L_Control_2m_DSC_8413.jpg"
-        "_CF_CF032_Eggs_R_Control_2m_DSC_8461.jpg"
-        "_CF_CF034_Eggs_L_Control_2m_DSC_8512.jpg"
-        "_CF_CF034_Eggs_R_Control_2m_DSC_8569.jpg"
-        "_CF_CF035_Eggs_L_Control_2m_DSC_8812.jpg"
-        "_CF_CF035_Eggs_R_Control_2m_DSC_8860.jpg"
-        "_CF_CF036_Eggs_L_Control_2m_DSC_8716.jpg"
-        "_CF_CF036_Eggs_R_Control_2m_DSC_8764.jpg"))
-
-(define cp_images
-  (list "_CP_CP001_Eggs_L_Control_2m_DSC_0906.jpg"
-        "_CP_CP001_Eggs_R_Control_2m_DSC_0093.jpg"
-        "_CP_CP002_Eggs_L_Control_2m_with_GS_DSC_0540.jpg"
-        "_CP_CP002_Eggs_R_Control_2m_with_GS_DSC_0573.jpg"
-        "_CP_CP010_Eggs_L_Control_2m_DSC_0662.jpg"
-        "_CP_CP010_Eggs_R_Control_2m_DSC_0701.jpg"
-        "_CP_CP011_Eggs_L_Control_2m_DSC_1232.jpg"
-        "_CP_CP011_Eggs_R_Control_2m_DSC_1271.jpg"
-        "_CP_CP012_Eggs_L_Control_2m_DSC_1690.jpg"
-        "_CP_CP012_Eggs_R_Control_2m_DSC_1738.jpg"
-        "_CP_CP014_Eggs_L_Control_2m_DSC_2464.jpg"
-        "_CP_CP014_Eggs_R_Control_2m_DSC_2506.jpg"
-        "_CP_CP016_Eggs_R_Control_2m_DSC_3034.jpg"
-        "_CP_CP017_Eggs_L_Control_2m_DSC_3889.jpg"
-        "_CP_CP017_Eggs_R_Control_2m_DSC_3931.jpg"
-        "_CP_CP019_Eggs_L_Control_2m_DSC_5119.jpg"
-        "_CP_CP019_Eggs_R_Control_2m_DSC_5158.jpg"
-        "_CP_CP024_Eggs_R_Control_2m_DSC_6421.jpg"
-        "_CP_CP025_Eggs_R_Control_2m_DSC_6721.jpg"
-        "_CP_CP026_Eggs_L_Control_2m_DSC_6964.jpg"
-        "_CP_CP026_Eggs_R_Control_2m_DSC_7012.jpg"
-        "_CP_CP029_Eggs_L_Control_2m_DSC_7300.jpg"
-        "_CP_CP029_Eggs_R_Control_2m_DSC_7348.jpg"
-        "_CP_CP031_Eggs_L_Control_2m_DSC_8317.jpg"
-        "_CP_CP031_Eggs_R_Control_2m_DSC_8365.jpg"
-        "_CP_CP032_Eggs_L_Control_2m_DSC_8218.jpg"
-        "_CP_CP032_Eggs_R_Control_2m_DSC_8266.jpg"
-))
-
-;        "_CP_CP015_Eggs_L_Control_2m_DSC_2638.jpg"
-;        "_CP_CP015_Eggs_R_Control_2m_DSC_2680.jpg"
-;        "_CP_CP016_Eggs_L_Control_2m_DSC_2986.jpg"
- ;       "_CP_CP018_Eggs_L_Control_2m_DSC_4840.jpg"
-  ;      "_CP_CP018_Eggs_R_Control_2m_DSC_4888.jpg"
-;        "_CP_CP024_Eggs_L_Control_2m_DSC_6373.jpg"
- ;       "_CP_CP025_Eggs_L_Control_2m_DSC_6670.jpg"
-  ;      "_CP_CP027_Eggs_L_Control_2m_DSC_7081.jpg"
-  ;      "_CP_CP027_Eggs_R_Control_2m_DSC_7132.jpg"
-
-
-(define mv_images
   (list
-   "_MV_MV001_Eggs_L_Control_2m_DSC_3973.jpg"
-   "_MV_MV001_Eggs_R_Control_2m_DSC_4021.jpg"
-   "_MV_MV002_Eggs_L_Control_2m_DSC_6178.jpg"
-   "_MV_MV002_Eggs_R_Control_2m_DSC_6226.jpg"
-   "_MV_MV003_Eggs_L_Control_2m_DSC_7399.jpg"
-   "_MV_MV003_Eggs_R_Control_2m_DSC_7447.jpg"
-   "_MV_MV004_Eggs_L_Control_2m_DSC_7597.jpg"
-   "_MV_MV004_Eggs_R_Control_2m_DSC_7645.jpg"
-   "_MV_MV005_Eggs_L_Control_2m_DSC_7693.jpg"
-   "_MV_MV005_Eggs_R_Control_2m_DSC_7741.jpg"
-   "_MV_MV006_Eggs_L_Control_2m_DSC_8041.jpg"
-   "_MV_MV006_Eggs_R_Control_2m_DSC_8092.jpg"
-   "_MV_MV007_Eggs_L_Control_2m_DSC_8908.jpg"
-   "_MV_MV007_Eggs_R_Control_2m_DSC_8956.jpg"
-   "_MV_MV008_Chicks_L_Control_2m_DSC_9004.jpg"
-   "_MV_MV008_Chicks_R_Control_2m_DSC_9052.jpg"
-   ))
+"CF/CF022_L_V_2013-c.jpg"
+"CF/CF005_L_V_2012-c.jpg"
+"CF/CF010_L_V_2012-c.jpg"
+"CF/CF013_L_V_2012-c.jpg"
+"CF/CF006_L_V_2012-c.jpg"
+"CF/CF027_L_V_2013-c.jpg"
+"CF/CF002_L_V_2013-c.jpg"
+"CF/CF011_L_V_2012-c.jpg"
+"CF/CF001_L_V_2013-c.jpg"
+"CF/CF005_L_V_2013-c.jpg"
+"CF/CF004_L_V_2012-c.jpg"
+"CF/CF020_L_V_2012-c.jpg"
+"CF/CF034_L_V_2012-c.jpg"
+"CF/CF031_L_V_2012-c.jpg"
+"CF/CF036_L_V_2012-c.jpg"
+"CF/CF020_L_V_2013-c.jpg"
+"CF/CF012_L_V_2012-c.jpg"
+"CF/CF001_L_V_2012-c.jpg"
+"CF/CF017_L_V_2012-c.jpg"
+"CF/CF013_L_V_2013-c.jpg"
+"CF/CF014_L_V_2012-c.jpg"
+"CF/CF021_L_V_2012-c.jpg"
+"CF/CF003_L_V_2013-c.jpg"
+"CF/CF011_L_V_2013-c.jpg"
+"CF/CF006_L_V_2013-c.jpg"
+"CF/CF032_R_V_2012-c.jpg"
+"CF/CF010_L_V_2013-c.jpg"
+"CF/CF016_L_V_2013-c.jpg"
+"CF/CF012_L_V_2013-c.jpg"
+"CF/CF025_L_V_2012-c.jpg"
+"CF/CF026_L_V_2012-c.jpg"
+"CF/CF026_L_V_2013-c.jpg"
+"CF/CF022_R_V_2012-c.jpg"
+"CF/CF009_L_V_2012-c.jpg"
+"CF/CF004_L_V_2013-c.jpg"
+"CF/CF008_L_V_2013-c.jpg"
+"CF/CF035_L_V_2012-c.jpg"
+"CF/CF027_L_V_2012-c.jpg"
+"CF/CF028_L_V_2013-c.jpg"
+"CF/CF015_L_V_2012-c.jpg"
+"CF/CF018_L_V_2013-c.jpg"
+"CF/CF002_L_V_2012-c.jpg"
+"CF/CF024_R_V_2012-c.jpg"))
+
+(define cp-images
+  (list
+"CP/CP012_L_V_2013-c.jpg"
+"CP/CP043_L_V_2013-c.jpg"
+"CP/CP029_L_V_2012-c.jpg"
+"CP/CP001_L_V_2012-c.jpg"
+"CP/CP005_L_V_2013-c.jpg"
+"CP/CP021_R_V_2013-c.jpg"
+"CP/CP015_R_V_2013-c.jpg"
+"CP/CP024_L_V_2013-c.jpg"
+"CP/CP007_L_V_2013-c.jpg"
+"CP/CP012_L_V_2012-c.jpg"
+"CP/CP002_L_V_2013-c.jpg"
+"CP/CP004_R_V_2013-c.jpg"
+"CP/CP020_L_V_2013-c.jpg"
+"CP/CP016_L_V_2012-c.jpg"
+"CP/CP026_L_V_2012-c.jpg"
+"CP/CP001_L_V_2013-c.jpg"
+"CP/CP019_R_V_2012-c.jpg"
+"CP/CP025_L_V_2013-c.jpg"
+"CP/CP017_L_V_2012-c.jpg"
+"CP/CP014_L_V_2012-c.jpg"
+"CP/CP041_L_V_2013-c.jpg"
+"CP/CP013_R_V_2013-c.jpg"
+"CP/CP029_L_V_2013-c.jpg"
+"CP/CP032_L_V_2012-c.jpg"
+"CP/CP018_R_V_2013-c.jpg"
+"CP/CP035_L_V_2013-c.jpg"
+"CP/CP019_L_V_2013-c.jpg"
+"CP/CP008_L_V_2013-c.jpg"
+"CP/CP042_L_V_2013-c.jpg"
+"CP/CP030_L_V_2013-c.jpg"
+"CP/CP010_R_V_2013-c.jpg"
+"CP/CP017_L_V_2013-c.jpg"
+"CP/CP015_L_V_2012-c.jpg"
+"CP/CP010_L_V_2012-c.jpg"
+"CP/CP031_R_V_2012-c.jpg"
+"CP/CP011_R_V_2013-c.jpg"
+"CP/CP014_R_V_2013-c.jpg"
+"CP/CP028_L_V_2013-c.jpg"
+"CP/CP011_L_V_2012-c.jpg"
+"CP/CP033_L_V_2013-c.jpg"
+"CP/CP023_L_V_2013-c.jpg"
+"CP/CP025_R_V_2012-c.jpg"
+"CP/CP009_R_V_2013-c.jpg"))
