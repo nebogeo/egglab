@@ -363,7 +363,7 @@
 
      (egglab-button
       "Find out more" 600 600 (find-image "bigbutton-1.png")
-      "Check out our website to learn more about the science of camouflage"
+      "Check out our website to learn more about the science of camouflage."
       (lambda (c)
         (set! window.location "http://nightjar.exeter.ac.uk")
         c))
@@ -470,7 +470,7 @@
 
       (egglab-button
        "High Scores" 600 200 (find-image "bigbutton-1.png")
-       "See if you are on the high scores list"
+       "See if you are on the high scores list."
        (lambda (c)
          (server-call-mutate
           "hiscores"
@@ -482,7 +482,7 @@
 
       (egglab-button
        "Most sucessful eggs" 600 400 (find-image "bigbutton-2.png")
-       "See my most succesful eggs for each species"
+       "See my most successful eggs for each species."
        (lambda (c)
          (server-call-mutate
           "top-eggs"
@@ -517,7 +517,7 @@
 
       (egglab-button
        "Egg difficulty graph" 600 600 (find-image "bigbutton-1.png")
-       "This shows how the eggs are becoming more difficult to spot"
+       "This shows how the eggs are becoming more difficult to spot."
         (lambda (c)
           (server-call-mutate
            "get-stats"
@@ -857,7 +857,7 @@
   (egglab-data-modify-player-time
    d (/ (+ t (egglab-data-player-time d)) num-eggs-total)))
 
-(define (submit-egg-and-build-next egg c)
+(define (submit-egg egg c)
   (server-call
    "add"
    (list
@@ -869,8 +869,11 @@
     (list "generation" (individual-generation egg))
     (list "parent" (individual-parent egg))
     (list "image" (car (egglab-data-images (game-data c))))
-    (list "genotype" (JSON.stringify (individual-egg egg)))))
+    (list "x-pos" (car (individual-pos egg)))
+    (list "y-pos" (cadr (individual-pos egg)))
+    (list "genotype" (JSON.stringify (individual-egg egg))))))
 
+(define (build-next-egg c)
   (if (eq? (length (egglab-data-eggs (game-data c))) 1)
       (game-modify-data
        (lambda (d)
@@ -895,6 +898,28 @@
           c)))
        c)))
 
+(define (seconds-taken c)
+  (/ (time-elapsed c) 1000))
+
+(define (result-text t)
+  (cond
+   ((< t 1)
+    (play-sound (string-append "sounds/great-" (+ 1 (random 3)) ".wav"))
+    (string-append
+     t " Secs - "
+     (choose (list "Super Reflex" "X-Ray vision!" "Perfect predator" "SO FAST"))))
+   ((and (> t 1) (< t 2))
+    (play-sound (string-append "sounds/good-" (+ 1 (random 3)) ".wav"))
+    (string-append
+     t " Secs - "
+     (choose (list "Nice work" "Not too shabby" "Good"))))
+   (else
+    (play-sound (string-append "sounds/ok-" (+ 1 (random 3)) ".wav"))
+    (string-append
+     t " Secs - "
+     (choose (list "Try harder" "Could do better" "Mouse problem?" "Looking the other way?"))
+     ))))
+
 (define (flicker-build-egg c)
   (let ((egg (car (egglab-data-eggs (game-data c)))))
     (let ((pos (individual-pos egg)))
@@ -902,18 +927,25 @@
        "" (car pos) (cadr pos) #f
        (individual-drawable egg)
        (lambda (c)
-         ;;(play-sound "sounds/button.wav")
-         (submit-egg-and-build-next egg c))))))
-
-(define (seconds-taken c)
-  (/ (time-elapsed c) 1000))
+         (submit-egg egg c)
+         (let ((t (seconds-taken c)))
+           (nightjar-flicker-result
+            c t (result-text t)
+            (list (random-range -200 200) (random-range 200 800))
+            (list (- (rndf) 0.5) (- (rndf) 0.5))
+            (+ (game-time c) 1000))))))))
 
 (define (nightjar-flicker-game c)
   (game-modify-update
    (lambda (t c)
-     (if (> (seconds-taken c) photo-time-allowed)
-         (submit-egg-and-build-next (car (egglab-data-eggs (game-data c))) c)
-         c))
+     (cond
+      ((< (seconds-taken c) photo-time-allowed)
+       c)
+      (else
+       ;; don't submit ones not clicked on???
+       ;;(submit-egg (car (egglab-data-eggs (game-data c))) c)
+       (play-sound (string-append "sounds/fail.wav"))
+       (build-next-egg c))))
    (game-modify-render
     (lambda (ctx)
       (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))
@@ -925,6 +957,33 @@
      (list
       (flicker-build-egg c))
      c))))
+
+(define (nightjar-flicker-result c time text pos dir end-time)
+  (game-modify-update
+   (lambda (t c)
+     (if (> t end-time)
+         (build-next-egg (nightjar-flicker-game c))
+         c))
+   (game-modify-render
+    (lambda (ctx)
+      (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))
+                     (- 0 (car (egglab-data-offset (game-data c))))
+                     (- 0 (cadr (egglab-data-offset (game-data c)))))
+      (set! ctx.font "normal 50pt 'Press Start 2P'")
+      (let ((x (+ (car pos) (* (car dir) 0.1 (- end-time (game-time c)))))
+            (y (+ (cadr pos) (* (cadr dir) 0.1 (- end-time (game-time c))))))
+        (set! ctx.fillStyle "#000")
+        (wrap-text ctx text x y)
+        (if (< time 1)
+            (let ((t (game-time c)))
+              (set! ctx.fillStyle (rgb-to-hex (* 256 (sin (* t 0.005)))
+                                              (* 256 (sin (* t 0.006)))
+                                              (* 256 (sin (* t 0.008))))))
+            (set! ctx.fillStyle "#fff"))
+        (wrap-text ctx text (- x 5) (- y 5)))
+      (set! ctx.font "normal 30pt 'Press Start 2P'"))
+    (game-modify-buttons
+     (list) c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1137,3 +1196,16 @@
 "CP/CP023_L_V_2013-c.jpg"
 "CP/CP025_R_V_2012-c.jpg"
 "CP/CP009_R_V_2013-c.jpg"))
+
+;; get in cache
+
+(new Audio "sounds/great-1.wav")
+(new Audio "sounds/great-2.wav")
+(new Audio "sounds/great-3.wav")
+(new Audio "sounds/good-1.wav")
+(new Audio "sounds/good-2.wav")
+(new Audio "sounds/good-3.wav")
+(new Audio "sounds/ok-1.wav")
+(new Audio "sounds/ok-2.wav")
+(new Audio "sounds/ok-3.wav")
+(new Audio "sounds/fail.wav")

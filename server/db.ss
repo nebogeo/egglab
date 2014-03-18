@@ -20,7 +20,7 @@
 (require racket/date)
 
 (define (setup db)
-  (exec/ignore db "create table egg ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, player_id integer, fitness real, individual_fitness real, generation integer, parent integer, image varchar, genotype varchar )")
+  (exec/ignore db "create table egg ( id integer primary key autoincrement, population varchar, replicate integer, time_stamp varchar, player_id integer, fitness real, individual_fitness real, generation integer, parent integer, image varchar, x_pos real, y_pos real, genotype varchar )")
   (exec/ignore db "create table player ( id integer primary key autoincrement, time_stamp varchar, name varchar, played_before integer, age_range integer )")
   (exec/ignore db "create table stats ( id integer primary key autoincrement, time_stamp varchar, egg_count integer, av_fitness real, max_fitness real, min_fitness real)")
   (exec/ignore db "create table egghunt ( id integer primary key autoincrement, background varchar, challenger varchar, message varchar, score integer, timestamp varchar)")
@@ -30,11 +30,11 @@
   )
 
 (define (insert-egg db population replicate time-stamp player-id fitness
-                    individual-fitness generation parent image genotype)
+                    individual-fitness generation parent image x-pos y-pos genotype)
   (insert
-   db "insert into egg values (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+   db "insert into egg values (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
    population replicate time-stamp player-id fitness
-   individual-fitness generation parent image genotype))
+   individual-fitness generation parent image x-pos y-pos genotype))
 
 (define (insert-player db time-stamp name played-before age-range)
   (insert

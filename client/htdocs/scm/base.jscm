@@ -28,6 +28,9 @@
 (define (random n)
   (Math.floor (* (Math.random) n)))
 
+(define (random-range a b)
+  (+ a (Math.floor (* (Math.random) (- b a)))))
+
 (define (rndf) (Math.random))
 
 ;; replaced by underlying iterative version

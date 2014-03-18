@@ -51,8 +51,8 @@
       (pluto-response (scheme->json '("hello")))))
 
    (register
-    (req 'add '(population replicate player-id fitness individual-fitness generation parent image genotype))
-    (lambda (population replicate player-id fitness individual-fitness generation parent image genotype)
+    (req 'add '(population replicate player-id fitness individual-fitness generation parent image x-pos y-pos genotype))
+    (lambda (population replicate player-id fitness individual-fitness generation parent image x-pos y-pos genotype)
       (pluto-response
        (scheme->json
         (pop-add
@@ -64,8 +64,11 @@
          (string->number individual-fitness)
          (string->number generation)
          (string->number parent)
+         image
+         (string->number x-pos)
+         (string->number y-pos)
          ;; store in escaped JSON format so we don't ever need to eval them
-         image (escape-quotes genotype))))))
+         (escape-quotes genotype))))))
 
    (register
     (req 'sample '(player-id population replicate count top))

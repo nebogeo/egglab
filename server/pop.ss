@@ -23,12 +23,13 @@
 (define av-record-count 0)
 (define av-record-period 10)
 
-(define (pop-add db population replicate player-id fitness individual-fitness generation parent image genotype)
+(define (pop-add db population replicate player-id fitness individual-fitness generation parent image x-pos y-pos genotype)
   (exec/ignore db "begin transaction")
   (let ((timestamp (timestamp-now)))
     (insert-egg
      db population replicate timestamp
-     player-id fitness individual-fitness generation parent image genotype)
+     player-id fitness individual-fitness
+     generation parent image x-pos y-pos genotype)
     (set! av-record-count (+ av-record-count 1))
     (when (>= av-record-count av-record-period)
           (set! av-record-count 0)
