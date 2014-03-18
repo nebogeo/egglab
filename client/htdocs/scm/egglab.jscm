@@ -277,42 +277,36 @@
       (image-button
        "" (+ icon-x 0) (+ icon-y 190) #f (find-image "sensory-ecology.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.sensoryecology.com/")
          c))
 
       (image-button
        "" (+ icon-x 130) (+ icon-y 190) #f (find-image "cuckoos.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www2.zoo.cam.ac.uk/africancuckoos/home.html")
          c))
 
       (image-button
        "" (+ icon-x 290) (+ icon-y 200) #f (find-image "exeter.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.exeter.ac.uk/")
          c))
 
       (image-button
        "" (+ icon-x 470) (+ icon-y 190) #f (find-image "cu.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.zoo.cam.ac.uk/")
          c))
 
       (image-button
        "" (+ icon-x 690) (+ icon-y 190) #f (find-image "bbsrc.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.bbsrc.ac.uk/")
          c))
 
       (image-button
        "" (+ icon-x 900) (+ icon-y 190) #f (find-image "foam.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://fo.am")
          c))
 
@@ -904,17 +898,17 @@
 (define (result-text t)
   (cond
    ((< t 1)
-    (play-sound (string-append "sounds/great-" (+ 1 (random 3)) ".wav"))
+    (play-sound (string-append "great-" (+ 1 (random 3)) ".wav"))
     (string-append
      t " Secs - "
      (choose (list "Super Reflex" "X-Ray vision!" "Perfect predator" "SO FAST"))))
    ((and (> t 1) (< t 2))
-    (play-sound (string-append "sounds/good-" (+ 1 (random 3)) ".wav"))
+    (play-sound (string-append "good-" (+ 1 (random 3)) ".wav"))
     (string-append
      t " Secs - "
      (choose (list "Nice work" "Not too shabby" "Good"))))
    (else
-    (play-sound (string-append "sounds/ok-" (+ 1 (random 3)) ".wav"))
+    (play-sound (string-append "ok-" (+ 1 (random 3)) ".wav"))
     (string-append
      t " Secs - "
      (choose (list "Try harder" "Could do better" "Mouse problem?" "Looking the other way?"))
@@ -944,7 +938,7 @@
       (else
        ;; don't submit ones not clicked on???
        ;;(submit-egg (car (egglab-data-eggs (game-data c))) c)
-       (play-sound (string-append "sounds/fail.wav"))
+       (play-sound (string-append "fail.wav"))
        (build-next-egg c))))
    (game-modify-render
     (lambda (ctx)
@@ -1071,6 +1065,19 @@
 
 (set! ctx.font "normal 50pt 'Press Start 2P'")
 
+(load-sounds!
+ (list
+  "great-1.wav"
+  "great-2.wav"
+  "great-3.wav"
+  "good-1.wav"
+  "good-2.wav"
+  "good-3.wav"
+  "ok-1.wav"
+  "ok-2.wav"
+  "ok-3.wav"
+  "fail.wav"))
+
 (load-images!
  (append
   (list
@@ -1196,16 +1203,3 @@
 "CP/CP023_L_V_2013-c.jpg"
 "CP/CP025_R_V_2012-c.jpg"
 "CP/CP009_R_V_2013-c.jpg"))
-
-;; get in cache
-
-(new Audio "sounds/great-1.wav")
-(new Audio "sounds/great-2.wav")
-(new Audio "sounds/great-3.wav")
-(new Audio "sounds/good-1.wav")
-(new Audio "sounds/good-2.wav")
-(new Audio "sounds/good-3.wav")
-(new Audio "sounds/ok-1.wav")
-(new Audio "sounds/ok-2.wav")
-(new Audio "sounds/ok-3.wav")
-(new Audio "sounds/fail.wav")

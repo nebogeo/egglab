@@ -57,11 +57,8 @@
 (define (time-to-seconds t)
   (/ (Math.floor (/ t 10)) 100))
 
-(define (play-sound sound)
- (let ((snd (new Audio sound)))
-    (snd.play)))
-
 (define image-lib ())
+(define sound-lib ())
 
 (define (load-image-mutate fn filename)
   (let ((image (js "new Image()")))
@@ -97,6 +94,14 @@
      (load-image! fn finished l))
    l))
 
+(define (load-sounds! l)
+  (for-each
+   (lambda (fn)
+     (set! sound-lib
+           (cons (list fn (new Audio (string-append "sounds/" fn)))
+                 sound-lib)))
+   l))
+
 (define (inner_find-image fn l)
   (cond
    ((null? l) #f)
@@ -105,6 +110,21 @@
 
 (define (find-image fn)
   (inner_find-image fn image-lib))
+
+(define (inner_find-sound fn l)
+  (cond
+   ((null? l) #f)
+   ((eq? (car (car l)) fn) (cadr (car l)))
+   (else (inner_find-sound fn (cdr l)))))
+
+(define (find-sound fn)
+  (inner_find-sound fn sound-lib))
+
+(define (play-sound sound)
+ (let ((snd (find-sound sound)))
+    (snd.play)))
+
+
 
 ;; ----------------------------------------
 ;; drawing helpers
