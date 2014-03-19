@@ -778,6 +778,7 @@
   (canvas.addEventListener
    "touchstart"
    (lambda (e)
+     (e.preventDefault)
      (let ((m (touch-from-event game canvas e)))
        (set! game (game-mouse-down game (car m) (cadr m))))))
 
