@@ -158,10 +158,10 @@
       (wrap-text ctx "Your eggs" 60 640 1000 50)
       (set! ctx.font "normal 15pt 'Press Start 2P'")
 
-      (ctx.drawImage (find-image "arrow-left-t.png") 40 250)
-      (ctx.drawImage (find-image "arrow-left-t.png") 70 250)
-      (ctx.drawImage (find-image "arrow-right-t.png") 1100 250)
-      (ctx.drawImage (find-image "arrow-right-t.png") 1130 250)
+      (ctx.drawImage (find-image "arrow-left-t.png") 40 300)
+      (ctx.drawImage (find-image "arrow-left-t.png") 70 300)
+      (ctx.drawImage (find-image "arrow-right-t.png") 1100 300)
+      (ctx.drawImage (find-image "arrow-right-t.png") 1130 300)
       )
 
     (game-modify-buttons
