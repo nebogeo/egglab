@@ -41,7 +41,7 @@
          (game-modify-draggables
           (cons
            (draggable-horizontal
-            120 300
+            120 350
             (find-image (list-ref egghuntbgs 0))
             (lambda (c) c))
            (index-map
@@ -87,47 +87,56 @@
       (image-button
        "" (+ icon-x 0) (+ icon-y 190) #f (find-image "sensory-ecology.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.sensoryecology.com/")
          c))
 
       (image-button
        "" (+ icon-x 130) (+ icon-y 190) #f (find-image "cuckoos.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www2.zoo.cam.ac.uk/africancuckoos/home.html")
          c))
 
       (image-button
        "" (+ icon-x 290) (+ icon-y 200) #f (find-image "exeter.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.exeter.ac.uk/")
          c))
 
       (image-button
        "" (+ icon-x 470) (+ icon-y 190) #f (find-image "cu.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.zoo.cam.ac.uk/")
          c))
 
       (image-button
        "" (+ icon-x 690) (+ icon-y 190) #f (find-image "bbsrc.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://www.bbsrc.ac.uk/")
          c))
 
       (image-button
        "" (+ icon-x 900) (+ icon-y 190) #f (find-image "foam.png")
        (lambda (c)
-         (play-sound "sound/button.wav")
          (set! window.location "http://fo.am")
          c))
 
      )
     c))))
+
+
+(define (bg-but n)
+  (image-button
+   "" (+ 270 (* n 100)) 30 "none" (find-image (list-ref egghuntbuts n))
+   (lambda (c)
+     (game-modify-data
+      (lambda (d)
+        (egghunt-modify-image-index d n))
+      (game-modify-draggables
+       (cons (draggable-modify-drawable
+              (car (game-draggables c))
+              (find-image (list-ref egghuntbgs n)))
+             (cdr (game-draggables c)))
+       c)))))
 
 
 (define (nightjar-egghunt-builder c)
@@ -140,41 +149,38 @@
       (robo-nightjar-says-bot-left ctx 30 "")
       (set! ctx.fillStyle "#000")
       (set! ctx.font "normal 15pt 'Press Start 2P'")
-      (wrap-text ctx "1. Choose a background" -190 630 300 20)
-      (wrap-text ctx "2. Drag it left and right" -190 670 300 20)
-      (wrap-text ctx "3. Drag the eggs to hide them" -190 710 300 20)
-      (wrap-text ctx "4. Click send!" -190 760 300 20)
-
-      (ctx.drawImage (find-image "eggarea.png") 580 590)
+      (wrap-text ctx "1. Choose a background" -190 640 300 20)
+      (wrap-text ctx "2. Drag it left and right" -190 680 300 20)
+      (wrap-text ctx "3. Drag the eggs to hide them" -190 720 300 20)
+      (wrap-text ctx "4. Click send!" -190 770 300 20)
+      (ctx.drawImage (find-image "eggarea.png") 580 600)
       (set! ctx.font "normal 20pt 'Press Start 2P'")
-      (wrap-text ctx "Your eggs" 60 630 1000 50)
-      (set! ctx.font "normal 15pt 'Press Start 2P'"))
+      (wrap-text ctx "Your eggs" 60 640 1000 50)
+      (set! ctx.font "normal 15pt 'Press Start 2P'")
+
+      (ctx.drawImage (find-image "arrow-left-t.png") 40 250)
+      (ctx.drawImage (find-image "arrow-left-t.png") 70 250)
+      (ctx.drawImage (find-image "arrow-right-t.png") 1100 250)
+      (ctx.drawImage (find-image "arrow-right-t.png") 1130 250)
+      )
 
     (game-modify-buttons
      (list
-      (image-button
-       "" 50 400 "none" (find-image "left.png")
-       (lambda (c)
-         (game-modify-data
-          (lambda (d)
-            (egghunt-modify-image-index
-             d (modulo (- (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
-          c)))
-
-      (image-button
-       "" 1180 400 "none" (find-image "right.png")
-       (lambda (c)
-         (game-modify-data
-          (lambda (d)
-            (egghunt-modify-image-index
-             d (modulo (+ (egghunt-image-index d) 1) (- (length egghuntbgs) 1))))
-          c)))
+      (bg-but 0)
+      (bg-but 1)
+      (bg-but 2)
+      (bg-but 3)
+      (bg-but 4)
+      (bg-but 5)
+      (bg-but 6)
+      (bg-but 7)
 
       (image-button
        "Send" 1170 700 "jumpy" (find-image "button.png")
        (lambda (c)
          (cond
           ((eq? (length (draggable-children (car (game-draggables c)))) 5)
+           (play-sound "great-1.wav")
            (let ((eggs (draggable-children (car (game-draggables c)))))
              (server-call-mutate
               "addegghunt"
@@ -214,7 +220,9 @@
 				      (cadr e))))
 		  (nightjar-thanks c))))
 	     c))
-	  (else (js "c")))))
+          (else
+           (play-sound "fail.wav")
+           c))))
 
       ) c))))
 
@@ -249,7 +257,31 @@
 (set! ctx.font "normal 50pt 'Press Start 2P'")
 
 (define egghuntbgs
-  (list "bg/egghunt/_MV_MV007_Adult_R_Control_2m_DSC_8956.jpg"))
+  (list
+   "bg/egghunt/CF005_L_V_2012.jpg"
+   "bg/egghunt/CF031_L_V_2012.jpg"
+   "bg/egghunt/CP001_L_V_2013.jpg"
+   "bg/egghunt/CP017_L_V_2013.jpg"
+   "bg/egghunt/CF010_L_V_2013.jpg"
+   "bg/egghunt/CF034_L_V_2012.jpg"
+   "bg/egghunt/CP009_R_V_2013.jpg"
+   "bg/egghunt/CP042_L_V_2013.jpg"))
+
+(define egghuntbuts
+  (list
+   "bg/egghunt/CF005_L_V_2012.png"
+   "bg/egghunt/CF031_L_V_2012.png"
+   "bg/egghunt/CP001_L_V_2013.png"
+   "bg/egghunt/CP017_L_V_2013.png"
+   "bg/egghunt/CF010_L_V_2013.png"
+   "bg/egghunt/CF034_L_V_2012.png"
+   "bg/egghunt/CP009_R_V_2013.png"
+   "bg/egghunt/CP042_L_V_2013.png"))
+
+(load-sounds!
+ (list
+  "great-1.wav"
+  "fail.wav"))
 
 (load-images!
  (append
@@ -284,8 +316,11 @@
    "exeter.png"
    "cuckoos.png"
    "foam.png"
-   "sensory-ecology.png")
-   egghuntbgs
-   egg-images)
+   "sensory-ecology.png"
+   "arrow-left-t.png"
+   "arrow-right-t.png")
+  egghuntbgs
+  egghuntbuts
+  egg-images)
  (lambda ()
    (start-game canvas ctx)))

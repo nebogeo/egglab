@@ -942,9 +942,10 @@
        (build-next-egg c))))
    (game-modify-render
     (lambda (ctx)
-      (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))
-                     (- 0 (car (egglab-data-offset (game-data c))))
-                     (- 0 (cadr (egglab-data-offset (game-data c)))))
+      (ctx.drawImage
+       (find-image (car (egglab-data-images (game-data c))))
+       (- 0 (car (egglab-data-offset (game-data c))))
+       (- 0 (cadr (egglab-data-offset (game-data c)))))
       (nightjar-draw-clock ctx (seconds-taken c) photo-time-allowed)
       (set! ctx.font "normal 30pt 'Press Start 2P'"))
     (game-modify-buttons
@@ -963,7 +964,7 @@
       (ctx.drawImage (find-image (car (egglab-data-images (game-data c))))
                      (- 0 (car (egglab-data-offset (game-data c))))
                      (- 0 (cadr (egglab-data-offset (game-data c)))))
-      (set! ctx.font "normal 50pt 'Press Start 2P'")
+      (set! ctx.font "normal 20pt 'Press Start 2P'")
       (let ((x (+ (car pos) (* (car dir) 0.1 (- end-time (game-time c)))))
             (y (+ (cadr pos) (* (cadr dir) 0.1 (- end-time (game-time c))))))
         (set! ctx.fillStyle "#000")
@@ -1114,32 +1115,23 @@
 
 (define cf_images
   (list
-"CF/CF022_L_V_2013-c.jpg"
 "CF/CF005_L_V_2012-c.jpg"
-"CF/CF010_L_V_2012-c.jpg"
 "CF/CF013_L_V_2012-c.jpg"
-"CF/CF006_L_V_2012-c.jpg"
 "CF/CF027_L_V_2013-c.jpg"
 "CF/CF002_L_V_2013-c.jpg"
 "CF/CF011_L_V_2012-c.jpg"
 "CF/CF001_L_V_2013-c.jpg"
 "CF/CF005_L_V_2013-c.jpg"
-"CF/CF004_L_V_2012-c.jpg"
 "CF/CF020_L_V_2012-c.jpg"
 "CF/CF034_L_V_2012-c.jpg"
 "CF/CF031_L_V_2012-c.jpg"
-"CF/CF036_L_V_2012-c.jpg"
 "CF/CF020_L_V_2013-c.jpg"
 "CF/CF012_L_V_2012-c.jpg"
 "CF/CF001_L_V_2012-c.jpg"
 "CF/CF017_L_V_2012-c.jpg"
 "CF/CF013_L_V_2013-c.jpg"
-"CF/CF014_L_V_2012-c.jpg"
-"CF/CF021_L_V_2012-c.jpg"
-"CF/CF003_L_V_2013-c.jpg"
 "CF/CF011_L_V_2013-c.jpg"
 "CF/CF006_L_V_2013-c.jpg"
-"CF/CF032_R_V_2012-c.jpg"
 "CF/CF010_L_V_2013-c.jpg"
 "CF/CF016_L_V_2013-c.jpg"
 "CF/CF012_L_V_2013-c.jpg"
@@ -1147,16 +1139,13 @@
 "CF/CF026_L_V_2012-c.jpg"
 "CF/CF026_L_V_2013-c.jpg"
 "CF/CF022_R_V_2012-c.jpg"
-"CF/CF009_L_V_2012-c.jpg"
-"CF/CF004_L_V_2013-c.jpg"
 "CF/CF008_L_V_2013-c.jpg"
 "CF/CF035_L_V_2012-c.jpg"
 "CF/CF027_L_V_2012-c.jpg"
 "CF/CF028_L_V_2013-c.jpg"
 "CF/CF015_L_V_2012-c.jpg"
 "CF/CF018_L_V_2013-c.jpg"
-"CF/CF002_L_V_2012-c.jpg"
-"CF/CF024_R_V_2012-c.jpg"))
+"CF/CF002_L_V_2012-c.jpg"))
 
 (define cp-images
   (list
@@ -1170,7 +1159,6 @@
 "CP/CP024_L_V_2013-c.jpg"
 "CP/CP007_L_V_2013-c.jpg"
 "CP/CP012_L_V_2012-c.jpg"
-"CP/CP002_L_V_2013-c.jpg"
 "CP/CP004_R_V_2013-c.jpg"
 "CP/CP020_L_V_2013-c.jpg"
 "CP/CP016_L_V_2012-c.jpg"
@@ -1194,7 +1182,6 @@
 "CP/CP017_L_V_2013-c.jpg"
 "CP/CP015_L_V_2012-c.jpg"
 "CP/CP010_L_V_2012-c.jpg"
-"CP/CP031_R_V_2012-c.jpg"
 "CP/CP011_R_V_2013-c.jpg"
 "CP/CP014_R_V_2013-c.jpg"
 "CP/CP028_L_V_2013-c.jpg"

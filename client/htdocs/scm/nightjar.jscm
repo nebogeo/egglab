@@ -442,6 +442,8 @@
 (define (draggable-w b) (list-ref b 2))
 (define (draggable-h b) (list-ref b 3))
 (define (draggable-drawable b) (list-ref b 4))
+;; will need to be same w/h
+(define (draggable-modify-drawable b v) (list-replace b 4 v))
 (define (draggable-state b) (list-ref b 5))
 (define (draggable-modify-state b v) (list-replace b 5 v))
 (define (draggable-children b) (list-ref b 6))
@@ -484,14 +486,32 @@
             (+ dy (draggable-y b))))
      (draggable-check-x b (+ dx (draggable-x b))))))
 
-(define (draggables-update-children e mx my dx dy l)
+;; ping a draggable back inside it's parent (only check y)
+(define (draggable-ping b parent cx cy)
+  (if (< cy (draggable-y parent))
+      (draggable-modify-y b (+ (draggable-y b) (- (draggable-y parent) cy)))
+      (if (> cy (+ (draggable-y parent) (draggable-h parent)))
+          (draggable-modify-y b (+ (draggable-y b)
+                                   (- (+ (draggable-y parent) (draggable-h parent))
+                                      cy)))
+          b)))
+
+
+(define (lock-inside-parent b parent)
+  (let ((cx (+ (draggable-x b) (/ (draggable-w b) 1.2)))
+        (cy (+ (draggable-y b) (/ (draggable-h b) 1.2))))
+    (if (not (draggable-inside? parent cx cy))
+        (draggable-ping b parent cx cy)
+        b)))
+
+(define (draggables-update-children parent e mx my dx dy l)
   (define found (js "false")) ;; giving up...
   (let ((r (map
             (lambda (d)
               (if (not found)
                   (let ((result (draggable-update d e mx my dx dy)))
                     (set! found (car result))
-                    (cadr result))
+                    (lock-inside-parent (cadr result) parent))
                   d))
             l)))
     (list found r)))
@@ -501,6 +521,7 @@
 ;; includes updating all children, with early out
 (define (draggable-update b e mx my dx dy)
   (let ((child-update (draggables-update-children
+                       b
                        e
                        (- mx (draggable-x b))
                        (- my (draggable-y b))
@@ -573,8 +594,6 @@
 ;; check first draggable and add from remaining
 ;; when inside
 (define (draggables-check-ownership l)
-  (msg (length l))
-  (msg (length (draggable-children (car l))))
   (draggable-remove-roots-in-car
    (cons
     (draggable-modify-children
@@ -587,8 +606,9 @@
        (filter
         (lambda (c)
           (draggable-inside?
-           (car l) (draggable-x c)
-           (draggable-y c)))
+           (car l)
+           (+ (draggable-x c) (/ (draggable-w c) 2))
+           (+ (draggable-y c) (/ (draggable-h c) 2))))
         (cdr l)))))
     (cdr l))))
 
@@ -629,7 +649,7 @@
 (define (make-new-game)
   (list 0 (lambda (ctx) 0) (lambda (t c) c)
         () () 0 0 () (list 0 0) (lambda (e c) c)
-        (lambda (c) c)))
+        (lambda (c) c) (lambda (ctx) 0)))
 
 (define (game-time g) (list-ref g 0))
 (define (game-modify-time v g) (list-replace g 0 v))
@@ -653,6 +673,8 @@
 (define (game-modify-mouse-hook v g) (list-replace g 9 v))
 (define (game-over-nothing-hook g) (list-ref g 10))
 (define (game-modify-over-nothing-hook v g) (list-replace g 10 v))
+(define (game-postrender g) (list-ref g 11))
+(define (game-modify-postrender v g) (list-replace g 11 v))
 
 (define (game-modify-mouse g x y)
   (game-modify-mx
@@ -699,6 +721,10 @@
   (let ((fn (game-render game)))
     (fn ctx)))
 
+(define (top-postrender-game ctx game)
+  (let ((fn (game-postrender game)))
+    (fn ctx)))
+
 (define (top-render)
   (when (not (eq? game 0))
         (ctx.clearRect 0 0 screen-width screen-height)
@@ -708,13 +734,21 @@
           (top-update-game t game)
 
           (ctx.save)
+          (when (not (null? (game-draggables game)))
+                (draggables-render! ctx t (list (car (game-draggables game)))))
+
           (top-render-game ctx game)
           (ctx.translate (car (game-world-offset game))
                          (cadr (game-world-offset game)))
 
           (buttons-render! ctx t (game-buttons game))
-          (draggables-render! ctx t (game-draggables game))
-          (ctx.restore))
+          (when (not (null? (game-draggables game)))
+                (draggables-render! ctx t (cdr (game-draggables game))))
+
+          (ctx.restore)
+          (top-postrender-game ctx game)
+
+          )
         (requestAnimFrame top-render ctx)))
 
 (define game 0)
