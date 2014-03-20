@@ -17,7 +17,7 @@
 // taken from the naked on pluto codebase
 
 function fb_interface(appid)
-{  
+{
     this.accessToken=false;
     this.uid=false;
     this.me=null;
@@ -36,40 +36,42 @@ function fb_interface(appid)
     this.login=function()
     {
         var fb=this;
-        console.log("attempting login");
-
-	console.log(FB);
+        console.log("getting login status");
 
         console.log(FB.getLoginStatus(function(response) {
             console.log(response);
             if (response.status=="connected") {
                 console.log("logged in already...");
-		fb.uid = response.authResponse.userID;
-		fb.accessToken = response.authResponse.accessToken;
-		fb.logged_on=true;
+		        fb.uid = response.authResponse.userID;
+		        fb.accessToken = response.authResponse.accessToken;
+		        fb.logged_on=true;
                 fb.get_user();
-	    }
-	    else
-	    {
+	        }
+	        else
+	        {
+                console.log("not logged in");
+
+                /*
                 console.log("trying to log in...");
-		FB.login(function(response) {
+		        FB.login(function(response) {
                     console.log("logging in...");
-		    if (response.authResponse) {
-			fb.accessToken = response.authResponse.accessToken;
-			fb.logged_on=true;
+		            if (response.authResponse) {
+			            fb.accessToken = response.authResponse.accessToken;
+			            fb.logged_on=true;
                         fb.get_user();
-		    }
-		}, {
+		            }
+		        }, {
                     scope:'user_about_me'
                 });
-	    }
-	}));
+                 */
+	        }
+	    }));
     };
-    
+
     this.request_callback = function(request, to) {
         console.log(to);
     };
-    
+
     this.request = function(message) {
         FB.ui(
             {method: 'apprequests',
@@ -99,6 +101,6 @@ function fb_interface(appid)
 	    });
 	}
     };
-    
+
     window.setTimeout(this.startup, 1000);
 }

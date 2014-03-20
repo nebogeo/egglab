@@ -649,7 +649,7 @@
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "normal 30pt 'Press Start 2P'")
-      (wrap-text ctx (string-append "Fitness for the eggs") 0 100 1000 70)
+      (wrap-text ctx (string-append "Egg difficulty graph") 0 100 1000 70)
       (set! ctx.font "normal 20pt 'Press Start 2P'")
       (draw-fitness-graph ctx table 50 250 1000 500))
 
