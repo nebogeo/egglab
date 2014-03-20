@@ -776,23 +776,9 @@
        (set! game (game-mouse-down game (car m) (cadr m))))))
 
   (canvas.addEventListener
-   "touchstart"
-   (lambda (e)
-     (e.preventDefault)
-     (let ((m (touch-from-event game canvas e)))
-       (set! game (game-mouse-down game (car m) (cadr m))))))
-
-  (canvas.addEventListener
    "mousemove"
    (lambda (e)
      (let ((m (mouse-from-event game canvas e)))
-       (set! game (game-mouse-move game (car m) (cadr m))))))
-
-  (canvas.addEventListener
-   "touchmove"
-   (lambda (e)
-     (e.preventDefault)
-     (let ((m (touch-from-event game canvas e)))
        (set! game (game-mouse-move game (car m) (cadr m))))))
 
   (canvas.addEventListener
@@ -800,6 +786,13 @@
    (lambda (e)
      (let ((m (mouse-from-event game canvas e)))
        (set! game (game-mouse-up game (car m) (cadr m))))))
+
+  (canvas.addEventListener
+   "touchmove"
+   (lambda (e)
+     (e.preventDefault)
+     (let ((m (touch-from-event game canvas e)))
+       (set! game (game-mouse-move game (car m) (cadr m))))))
 
   (canvas.addEventListener
    "touchend"
@@ -816,6 +809,15 @@
   ;; todo - pass in game specific func
   (set! game (nightjar-intro (make-new-game)))
   (requestAnimFrame top-render ctx))
+
+;;  (canvas.addEventListener
+;;   "touchstart"
+;;   (lambda (e)
+;;     (e.preventDefault)
+;;     (let ((m (touch-from-event game canvas e)))
+;;       (set! game (game-mouse-down game (car m) (cadr m))))))
+
+
 
 (define (mutate-game f)
   (lambda (data)
