@@ -91,7 +91,7 @@
                 "select e.fitness from egg as e where "
                 "e.population = ? and "
                 "e.replicate = ? "
-                "order by e.fitness desc limit 1 offset ?")
+                "order by (e.individual_fitness + (e.generation * 100.0)) desc limit 1 offset ?")
             population replicate count)))
     (if (null? s)
         '()
@@ -109,7 +109,7 @@
                 "select e.genotype, e.fitness, e.generation, e.id from egg as e where "
                 "e.population = ? and "
                 "e.replicate = ? and "
-                "e.fitness > ? "
+                "(e.individual_fitness + (e.generation * 100.0)) > ? "
                 "order by random() limit ?")
             population replicate thresh-fitness count)))
     (if (null? s)
