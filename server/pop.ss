@@ -35,7 +35,7 @@
           (set! av-record-count 0)
           (let ((stats
                  (cadr (select
-                        db "select count(e.fitness), avg(e.fitness), max(e.fitness), min(e.fitness) from egg as e"))))
+                        db "select count(e.individual_fitness), avg(e.individual_fitness), max(e.individual_fitness), min(e.individual_fitness) from egg as e"))))
             (insert-stats
              db timestamp
              (vector-ref stats 0) ;; count
