@@ -101,7 +101,10 @@
              (egg-drawable program #f)
              program
              (list (+ x-off xx) yy))
-            (time-to-seconds fitness))))))
+            (string-append
+             (time-to-seconds fitness)
+             " : " (list-ref sample 3)
+             " : " (list-ref sample 4)))))))
    samples))
 
 (define (make-best-population game samplesa samplesb samplesc)
