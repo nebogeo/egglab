@@ -802,10 +802,16 @@
        (set! game (game-mouse-up game (car m) (cadr m))))))
 
   (canvas.addEventListener
-   "touchend" (lambda (e) (set! game (game-mouse-up game 0 0))))
+   "touchend"
+   (lambda (e)
+     (e.preventDefault)
+     (set! game (game-mouse-up game 0 0))))
 
   (canvas.addEventListener
-   "touchcancel" (lambda (e) (set! game (game-mouse-up game 0 0))))
+   "touchcancel"
+   (lambda (e)
+     (e.preventDefault)
+     (set! game (game-mouse-up game 0 0))))
 
   ;; todo - pass in game specific func
   (set! game (nightjar-intro (make-new-game)))
