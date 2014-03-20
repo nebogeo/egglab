@@ -91,7 +91,7 @@
                 "select e.fitness from egg as e where "
                 "e.population = ? and "
                 "e.replicate = ? "
-                "order by (e.individual_fitness + (e.generation * 100.0)) desc limit 1 offset ?")
+                "order by e.individual_fitness desc limit 1 offset ?")
             population replicate count)))
     (if (null? s)
         '()
@@ -109,7 +109,7 @@
                 "select e.genotype, e.fitness, e.generation, e.id from egg as e where "
                 "e.population = ? and "
                 "e.replicate = ? and "
-                "(e.individual_fitness + (e.generation * 100.0)) > ? "
+                "e.individual_fitness > ? "
                 "order by random() limit ?")
             population replicate thresh-fitness count)))
     (if (null? s)
@@ -150,7 +150,7 @@
             db (string-append
                 "select e.genotype, e.individual_fitness, e.id, e.replicate, e.generation from egg as e "
                 "where e.population = ? "
-                "order by (e.individual_fitness + (e.generation * 100.0)) desc limit ?")
+                "order by e.individual_fitness desc limit ?")
             population count)))
     (if (null? s)
         '()
