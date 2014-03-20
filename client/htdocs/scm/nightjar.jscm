@@ -766,15 +766,17 @@
   (let ((e (car e.targetTouches)))
     (mouse-from-event g canvas e)))
 
+(define touchscreen 0)
+
 (define (start-game canvas ctx)
   (ctx.clearRect 0 0 screen-width screen-height)
 
   (canvas.addEventListener
    "mousedown"
    (lambda (e)
-     (msg "mouse down")
-     (let ((m (mouse-from-event game canvas e)))
-       (set! game (game-mouse-down game (car m) (cadr m))))))
+     (when (zero? touchscreen)
+           (let ((m (mouse-from-event game canvas e)))
+             (set! game (game-mouse-down game (car m) (cadr m)))))))
 
   (canvas.addEventListener
    "mousemove"
@@ -792,7 +794,7 @@
    "touchstart"
    (lambda (e)
      (e.preventDefault)
-     (msg "touch start")
+     (set! touchscreen 1)
      (let ((m (touch-from-event game canvas e)))
        (set! game (game-mouse-down game (car m) (cadr m))))))
 
