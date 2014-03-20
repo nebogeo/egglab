@@ -525,7 +525,7 @@
                      (list-ref data 2)))
                    (list 0 0)))
                 c)))))
-         c))
+         (nightjar-generating-best-eggs c)))
 
       (egglab-button
        "Egg difficulty graph" 600 600 (find-image "bigbutton-1.png")
@@ -543,6 +543,16 @@
        "Back" 1150 720 "jumpy" (find-image "button.png")
        (lambda (c) (nightjar-choose-location c))))
      c))))
+
+(define (nightjar-generating-best-eggs c)
+  (game-modify-update
+   (lambda (t c)
+     c)
+   (game-modify-render
+    (lambda (ctx)
+      (robo-nightjar-says ctx 20 "Please wait while I calculate the best eggs for you..."))
+    (game-modify-buttons (list) c))))
+
 
 (define (nightjar-hiscores table c)
   (game-modify-update
