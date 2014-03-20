@@ -150,7 +150,7 @@
             db (string-append
                 "select e.genotype, e.individual_fitness, e.id, e.replicate, e.generation from egg as e "
                 "where e.population = ? "
-                "order by (e.individual_fitness + (e.generation * 1.0)) desc limit ?")
+                "order by (e.individual_fitness + (e.generation * 1000.0)) desc limit ?")
             population count)))
     (if (null? s)
         '()
