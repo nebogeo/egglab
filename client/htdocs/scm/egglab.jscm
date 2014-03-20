@@ -322,7 +322,6 @@
      (let ((fullpath (bg-full-path i)))
        (load-image-mutate
         (lambda (c)
-          (msg (+ "loaded " fullpath))
           (game-modify-data
            (lambda (d)
              (egglab-data-modify-images
@@ -331,9 +330,21 @@
         fullpath)))
    (shuffle l)))
 
+;; just to get them in the cache
+(define (async-load-images-null c path l)
+  (for-each
+   (lambda (i)
+     (let ((fullpath (bg-full-path i)))
+       (load-image-mutate
+        (lambda (c)
+          (msg (+ "loaded " fullpath))
+          c)
+        fullpath)))
+   (shuffle l)))
+
 (define (nightjar-menu c)
   ;; kick off the loading here
-  (async-load-images c "MV" (append cf_images cp_images))
+  (async-load-images-null c "MV" (append cf_images cp_images))
 
   (game-modify-render
    (lambda (ctx)
@@ -393,7 +404,7 @@
      (lambda (c) (nightjar-menu c)))
 
     (image-button
-     "Stats" 1000 720 "jumpy" (find-image "button.png")
+     "Data" 1000 720 "jumpy" (find-image "button.png")
      (lambda (c)
        (nightjar-env c)))
 
@@ -666,8 +677,6 @@
             (let ((ret (JSON.parse data)))
               (let ((player-id (cadr (car ret)))
                     (samples (cadr ret)))
-                (msg "new game")
-                (msg player-id)
                 (nightjar-flicker-game
                  (game-modify-data
                   (lambda (d)
@@ -707,25 +716,26 @@
                  0 250 1000 70)
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
 
-
-    (game-modify-buttons
-     (list
-      (image-button
-       "Continue" (/ screen-width 2) 500 "jumpy" (find-image "button.png")
-       (lambda (c)
-         (if (eq? (egglab-data-username (game-data c)) "???")
-             (nightjar-enter-name c)
-             (begin
-               (server-call
-                "add-score"
-                (list
-                 (list "player-id" (egglab-data-player-id (game-data c)))
-                 (list "name" (egglab-data-username (game-data c)))
-                 (list "score" (egglab-data-player-time (game-data c)))
-                 (list "population" (egglab-data-land (game-data c)))
-                 (list "replicate" (egglab-data-replicate (game-data c)))))
-               (nightjar-choose-location c))))))
-     c))))
+    (game-modify-postrender
+     (lambda (ctx) 0)
+     (game-modify-buttons
+      (list
+       (image-button
+        "Continue" (/ screen-width 2) 500 "jumpy" (find-image "button.png")
+        (lambda (c)
+          (if (eq? (egglab-data-username (game-data c)) "???")
+              (nightjar-enter-name c)
+              (begin
+                (server-call
+                 "add-score"
+                 (list
+                  (list "player-id" (egglab-data-player-id (game-data c)))
+                  (list "name" (egglab-data-username (game-data c)))
+                  (list "score" (egglab-data-player-time (game-data c)))
+                  (list "population" (egglab-data-land (game-data c)))
+                  (list "replicate" (egglab-data-replicate (game-data c)))))
+                (nightjar-choose-location c))))))
+      c)))))
 
 (define (type-into str ch)
   (car
@@ -950,12 +960,14 @@
        (find-image (car (egglab-data-images (game-data c))))
        (- 0 (car (egglab-data-offset (game-data c))))
        (- 0 (cadr (egglab-data-offset (game-data c)))))
-      (nightjar-draw-clock ctx (seconds-taken c) photo-time-allowed)
       (set! ctx.font "normal 30pt 'Press Start 2P'"))
-    (game-modify-buttons
-     (list
-      (flicker-build-egg c))
-     c))))
+    (game-modify-postrender
+     (lambda (ctx)
+       (nightjar-draw-clock ctx (seconds-taken c) photo-time-allowed))
+     (game-modify-buttons
+      (list
+       (flicker-build-egg c))
+      c)))))
 
 (define (nightjar-flicker-result c time text pos dir end-time)
   (game-modify-update
@@ -971,8 +983,10 @@
       (nightjar-draw-clock ctx time photo-time-allowed)
       (set! ctx.font "normal 20pt 'Press Start 2P'")
       (set! ctx.font "normal 30pt 'Press Start 2P'"))
-    (game-modify-buttons
-     (list) c))))
+    (game-modify-postrender
+     (lambda (ctx) 0)
+     (game-modify-buttons
+      (list) c)))))
 
 ;;      (let ((x (+ (car pos) (* (car dir) 0.1 (- end-time (game-time c)))))
 ;;            (y (+ (cadr pos) (* (cadr dir) 0.1 (- end-time (game-time c))))))
