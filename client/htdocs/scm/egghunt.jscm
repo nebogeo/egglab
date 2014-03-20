@@ -158,10 +158,6 @@
       (wrap-text ctx "Your eggs" 60 640 1000 50)
       (set! ctx.font "normal 15pt 'Press Start 2P'")
 
-      (ctx.drawImage (find-image "arrow-left-t.png") 40 300)
-      (ctx.drawImage (find-image "arrow-left-t.png") 70 300)
-      (ctx.drawImage (find-image "arrow-right-t.png") 1100 300)
-      (ctx.drawImage (find-image "arrow-right-t.png") 1130 300)
       )
 
     (game-modify-buttons
@@ -174,6 +170,24 @@
       (bg-but 5)
       (bg-but 6)
       (bg-but 7)
+
+      (image-button "" 100 350 "none" (find-image "arrow-left-t.png")
+                    (lambda (c)
+                      (let ((bg (car (game-draggables c))))
+                        (game-modify-draggables
+                         c (cons
+                            (draggable-modify-x
+                             bg (- (draggable-x bg) 20))
+                            (cdr (game-draggables c)))))))
+
+      (image-button "" 1100 350 "none" (find-image "arrow-right-t.png")
+                    (lambda (c)
+                      (let ((bg (car (game-draggables c))))
+                        (game-modify-draggables
+                         c (cons
+                            (draggable-modify-x
+                             bg (+ (draggable-x bg) 20))
+                            (cdr (game-draggables c)))))))
 
       (image-button
        "Send" 1170 700 "jumpy" (find-image "button.png")
