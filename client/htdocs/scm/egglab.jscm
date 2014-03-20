@@ -680,24 +680,24 @@
             (let ((ret (JSON.parse data)))
               (let ((player-id (cadr (car ret)))
                     (samples (cadr ret)))
-                (nightjar-flicker-game
-                 (game-modify-data
-                  (lambda (d)
-                    (egglab-data-start-game
-                     d player-id
-                     (game-time c)
-                     (make-population
-                      "flicker"
-                      (if (eq? null samples)
-                          ()
-                          (map
-                           (lambda (d)
-                             ;; individually parse the egg's code
-                             (cons (JSON.parse (car d)) (cdr d)))
-                           samples)))
-                     (list 0 0)))
-                  c))))))
-         c))
+                (msg "GENERATING POPULATION")
+                (let ((pop (make-population
+                            "flicker"
+                            (if (eq? null samples)
+                                ()
+                                (map
+                                 (lambda (d)
+                                   ;; individually parse the egg's code
+                                   (cons (JSON.parse (car d)) (cdr d)))
+                                 samples)))))
+                  (nightjar-flicker-game
+                   (game-modify-data
+                    (lambda (d)
+                      (let ((time-now (- (js "new Date()") load-time)))
+                        (egglab-data-start-game
+                         d player-id time-now pop (list 0 0))))
+                    c)))))))
+         (nightjar-generating-eggs c)))
 
      (image-button
       "Back" 1150 720 "jumpy" (find-image "button.png")
@@ -705,6 +705,15 @@
      )
 
      c))))
+
+(define (nightjar-generating-eggs c)
+  (game-modify-update
+   (lambda (t c)
+     c)
+   (game-modify-render
+    (lambda (ctx)
+      (robo-nightjar-says ctx 20 "Please wait while I generate some eggs just for you..."))
+    c)))
 
 (define (nightjar-thanks c)
   (game-modify-update
