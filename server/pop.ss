@@ -19,31 +19,197 @@
 
 (require (planet jaymccarthy/sqlite:5:1/sqlite))
 
-(define pop-size 1024)
-(define av-record-count 0)
-(define av-record-period 10)
+(define max-pop-size 128)
+(define min-tests 3)
+(define pop-top 64)
 
-(define (pop-add db population replicate player-id fitness individual-fitness generation parent image x-pos y-pos genotype)
-  (exec/ignore db "begin transaction")
-  (let ((timestamp (timestamp-now)))
-    (insert-egg
-     db population replicate timestamp
-     player-id fitness individual-fitness
-     generation parent image x-pos y-pos genotype)
-    (set! av-record-count (+ av-record-count 1))
-    (when (>= av-record-count av-record-period)
-          (set! av-record-count 0)
-          (let ((stats
-                 (cadr (select
-                        db "select count(e.individual_fitness), avg(e.individual_fitness), max(e.individual_fitness), min(e.individual_fitness) from egg as e"))))
-            (insert-stats
-             db timestamp
-             (vector-ref stats 0) ;; count
-             (inexact->exact (round (vector-ref stats 1))) ;; average
-             (inexact->exact (round (vector-ref stats 2))) ;; max
-             (inexact->exact (round (vector-ref stats 3)))))) ;; min
-    (exec/ignore db "end transaction")
-    '("ok")))
+(define (pop-least-tested db population replicate)
+  (let* ((gen (get-state db population replicate "generation"))
+         (s (select
+             db (string-append "select e.tests from egg as e where "
+                               "e.population = ? and "
+                               "e.replicate = ? and "
+                               "e.generation = ? "
+                               "order by e.tests limit 1")
+             population replicate gen)))
+    (if (null? s) 0 (vector-ref (cadr s) 0))))
+
+(define (pop-size db population replicate)
+  (let* ((gen (get-state db population replicate "generation"))
+         (s (select
+             db (string-append "select count(*) from egg as e where "
+                               "e.population = ? and "
+                               "e.replicate = ? and "
+                               "e.generation = ?")
+             population replicate gen)))
+    (if (null? s) 0 (vector-ref (cadr s) 0))))
+
+(define (pop-next-size db population replicate)
+  (let* ((gen (+ (get-state db population replicate "generation") 1))
+         (s (select
+             db (string-append "select count(*) from egg as e where "
+                               "e.population = ? and "
+                               "e.replicate = ? and "
+                               "e.generation = ? ")
+             population replicate gen)))
+    (if (null? s) 0 (vector-ref (cadr s) 0))))
+
+;; copy the top
+(define (pop-copy-top db population replicate)
+  (let ((s (select
+            db (string-append
+                "select e.player_id, e.id, e.image, e.x_pos, e.y_pos, e.genotype from egg as e where "
+                "e.population = ? and "
+                "e.replicate = ? and "
+                "e.generation = ? "
+                "order by (e.fitness / e.tests) desc limit ?")
+            population replicate
+            (get-state db population replicate "generation") pop-top))
+        (timestamp (timestamp-now)))
+    (exec/ignore db "begin transaction")
+    (when (not (null? s))
+          (for-each
+           (lambda (i)
+             (insert-egg
+              db population replicate timestamp
+              (vector-ref i 0) ;; player id
+              0 ;; fitness
+              0 ;; tests
+              (+ (get-state db population replicate "generation") 1)
+              (vector-ref i 1) ;; parent id
+              (vector-ref i 2) ;; image
+              (inexact->exact (vector-ref i 3)) ;; x-pos
+              (inexact->exact (vector-ref i 4)) ;; y-pos
+              (vector-ref i 5))) ;; genotype
+           (cdr s)))
+    (exec/ignore db "end transaction")))
+
+(define (pop-add db population replicate egg-phase egg-id player-id fitness parent image x-pos y-pos genotype)
+  (let ((phase (get-state db population replicate "phase"))
+        (timestamp (timestamp-now)))
+    (cond
+     ((not (equal? phase egg-phase))
+      (msg "rejecting egg - phase has changed"))
+
+     ((equal? phase "init")
+      ;; add to the first generation
+      (insert-egg
+       db population replicate timestamp player-id
+       fitness 0 0 0 image x-pos y-pos genotype)
+      ;; check if we are finished
+      (when (>= (pop-size db population replicate) max-pop-size)
+            (set-state db population replicate "phase" "test")))
+
+     ((equal? phase "test")
+      (update-egg db population replicate egg-id fitness)
+      (when (>= (pop-least-tested db population replicate) min-tests)
+            (pop-copy-top db population replicate)
+            (set-state db population replicate "phase" "fill")))
+
+     ((equal? phase "fill")
+      (insert-egg
+       db population replicate timestamp player-id
+       fitness 1 (+ (get-state db population replicate "generation") 1)
+       parent image x-pos y-pos genotype)
+
+      (when (>= (pop-next-size db population replicate) max-pop-size)
+            (set-state db population replicate "generation"
+                       (+ (get-state db population replicate "generation") 1))
+            (set-state db population replicate "phase" "test")))))
+  '("ok"))
+
+;; return count number of eggs from eggs with fitness higher than
+;; thresh-fitness in the population and replicate specified
+(define (inner-pop-sample db population replicate count)
+  (let ((phase (get-state db population replicate "phase"))
+        (generation (get-state db population replicate "generation")))
+    (cond
+     ;; return nothing when initialising
+     ((equal? phase "init") '())
+
+     ;; get the least tested individuals
+     ((equal? phase "test")
+      (let ((s (select
+                db (string-append
+                    "select e.genotype, e.fitness, e.generation, e.id, e.generation from egg as e where "
+                    "e.population = ? and "
+                    "e.replicate = ? and "
+                    "e.generation = ? "
+                    "order by e.tests limit ?")
+                population replicate generation count)))
+        (if (null? s)
+            '()
+            (map
+             (lambda (i)
+               (list
+                (vector-ref i 0)
+                (vector-ref i 1)
+                (vector-ref i 2)
+                (vector-ref i 3)
+                (vector-ref i 4)))
+             (cdr s)))))
+
+     ;; use the read head to get the next individuals from the
+     ;; top fitness of this populaton
+     ((equal? phase "fill")
+      (let ((s (select
+                db (string-append
+                    "select e.genotype, e.fitness / e.tests, e.generation, e.id, e.generation from egg as e where "
+                    "e.population = ? and "
+                    "e.replicate = ? and "
+                    "e.generation = ? "
+                    "order by (e.fitness / e.tests) desc limit ? offset ?")
+                population replicate generation count
+                (get-state db population replicate "read_head"))))
+
+        ;; rotate the read head
+        (set-state db population replicate "read_head"
+                   (+ (get-state db population replicate "read_head")
+                    count))
+        (when (> (get-state db population replicate "read_head") pop-top)
+              (set-state db population replicate "read_head" 0))
+
+        (if (null? s)
+            '()
+            (map
+             (lambda (i)
+               (list
+                (vector-ref i 0)
+                (vector-ref i 1)
+                (vector-ref i 2)
+                (vector-ref i 3)
+                (vector-ref i 4)))
+             (cdr s))))))))
+
+(define (pop-sample db population replicate count)
+  (check/init-state db population replicate)
+  (list
+   (get-state db population replicate "phase")
+   (inner-pop-sample db population replicate count)))
+
+(define (pop-stats db population)
+  (let ((s (select
+            db (string-append
+                ;;"select distinct generation, generation from ("
+                "select distinct e.generation, avg(e.fitness/e.tests) "
+                "from egg as e where e.population = ? order by generation"
+                ;;") order by generation"
+                )
+            population)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list
+            (vector-ref i 0)
+            (vector-ref i 1)))
+         (cdr s)))))
+
+;(define (sample-eggs-from-top db population replicate count top)
+;  (let ((f (get-fitness-thresh db population replicate top)))
+;    (if (null? f)
+;        (sample-egg db population replicate count 0)
+;        (sample-egg db population replicate count (inexact->exact (round (car f)))))))
 
 
 ;; return a bunch of (id genome) lists for inheritence viz
@@ -89,17 +255,70 @@
   (update-player db player-id name played-before age-range)
   '("ok"))
 
+(define (test-add1 db population replicate egg-id player-id parent image x-pos y-pos genome)
+  (pop-add db population replicate egg-id player-id (if (equal? genome "good") (+ (random 100) 20) (random 100))
+           parent image x-pos y-pos genome))
+
+(define (test-add2 db population replicate egg-id player-id parent image x-pos y-pos genome)
+  (pop-add db population replicate egg-id player-id (if (equal? genome "good2") (+ (random 100) 20) (random 100))
+           parent image x-pos y-pos genome))
+
+(define (stats db population replicate)
+  (msg "popsize: " (pop-size db population replicate)
+       "popleast: " (pop-least-tested db population replicate)
+       "generation: " (get-state db population replicate "generation")
+       "popnextsize: " (pop-next-size db population replicate))
+  (msg (pop-stats db "CF"))
+  (msg (pop-stats db "MV")))
+
 (define (pop-unit-tests)
+  (define (emulate db pop rep add)
+    (let ((samples (pop-sample db pop rep 5)))
+      ;;(msg "-----------------")
+      (msg samples)
+      (cond
+       ((equal? (car samples) "init")
+        ;; add some new ones
+        (for ((i (in-range 0 10)))
+             (if (< (random 50) 25)
+                 (pop-add db pop rep -1 0 (random 100) 0 "" 0 0 (if (equal? pop "CF") "bad" "bad2"))
+                 (pop-add db pop rep -1 0 (random 100) 0 "" 0 0 (if (equal? pop "CF") "good" "good2")))))
+       ((equal? (car samples) "test")
+        (for-each
+         (lambda (egg)
+           (add db pop rep (list-ref egg 3) 0 0 "" 0 0 (list-ref egg 0)))
+         (cadr samples)))
+       ((equal? (car samples) "fill")
+        (for-each
+         (lambda (egg)
+           ;; mutate
+           (add db pop rep 0 0 (list-ref egg 3) "" 0 0 (list-ref egg 0)))
+         (cadr samples))))))
+
+
+
   ;; db
   (msg "testing db")
   (define db (open-db "unit-test.db"))
 
-  (let ((id (cadr (player db "pop1" 0 "dave" 100 #t 3))))
-    (for ((i (in-range 0 10)))
-         (pop-add db "pop1" 0 id (random 1000) 200 1 0 "img" (string-append "(foo" (number->string i) ")")))
+  (for ((i (in-range 0 100000)))
+       (msg "----------- 1 ----------------------")
+       (emulate db "CF" 0 test-add1)
+       (emulate db "CF" 0 test-add1)
+       (stats db "CF" 0)
+       (msg "----------- 2 ----------------------")
+       (emulate db "MV" 23 test-add2)
+       (stats db "MV" 23)
+       )
 
-    (msg (sample-eggs-from-top db "pop1" 0 2 3))
-    (msg (top-eggs db "pop1" 0 10))
-    (msg (get-stats db "pop1" 0 10))
+;  (let ((id (cadr (player db "pop1" 0 "dave" 100 #t 3))))
+;    (for ((i (in-range 0 10)))
+;         (pop-add db "pop1" 0 id (random 1000) 200 1 0 "img" (string-append "(foo" (number->string i) ")")))
+;
+;    (msg (sample-eggs-from-top db "pop1" 0 2 3))
+;    (msg (top-eggs db "pop1" 0 10))
+;    (msg (get-stats db "pop1" 0 10)) )
 
-    ))
+    )
+
+;(pop-unit-tests)

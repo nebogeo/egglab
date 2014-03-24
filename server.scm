@@ -51,18 +51,18 @@
       (pluto-response (scheme->json '("hello")))))
 
    (register
-    (req 'add '(population replicate player-id fitness individual-fitness generation parent image x-pos y-pos genotype))
-    (lambda (population replicate player-id fitness individual-fitness generation parent image x-pos y-pos genotype)
+    (req 'add '(phase population replicate egg-id player-id fitness parent image x-pos y-pos genotype))
+    (lambda (phase population replicate egg-id player-id fitness parent image x-pos y-pos genotype)
       (pluto-response
        (scheme->json
         (pop-add
          db
          population
          (string->number replicate)
+         phase
+         (string->number egg-id)
          (string->number player-id)
          (string->number fitness)
-         (string->number individual-fitness)
-         (string->number generation)
          (string->number parent)
          image
          (string->number x-pos)
@@ -71,14 +71,12 @@
          (escape-quotes genotype))))))
 
    (register
-    (req 'sample '(player-id population replicate count top))
-    (lambda (player-id population replicate count top)
-      (let ((samples (sample-eggs-from-top
-                      db
-                      population
+    (req 'sample '(player-id population replicate count))
+    (lambda (player-id population replicate count)
+      (let ((samples (pop-sample
+                      db population
                       (string->number replicate)
-                      (string->number count)
-                      (string->number top))))
+                      (string->number count))))
         (pluto-response
          (scheme->json
           (list

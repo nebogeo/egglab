@@ -18,24 +18,24 @@
 ;; gp
 
 (define num-eggs-total 15)
-(define num-eggs-from-population 14)
+(define num-eggs-from-population 15)
 (define num-best-eggs 16)
 (define selection-pop-size 256)
 (define photo-time-allowed 10)
 
-(define (make-individual fitness ancestral-fitness generation parent drawable egg pos)
-  (list fitness ancestral-fitness generation parent drawable egg pos))
+(define (make-individual id fitness ancestral-fitness generation parent drawable egg pos phase)
+  (list id fitness ancestral-fitness generation parent drawable egg pos phase))
 
-(define (individual-fitness i) (list-ref i 0))
-;; only for top/ancestor egg viz
 (define (individual-id i) (list-ref i 0))
-(define (individual-modify-fitness i v) (list-replace i 0 v))
-(define (individual-ancestral-fitness i) (list-ref i 1))
-(define (individual-generation i) (list-ref i 2))
-(define (individual-parent i) (list-ref i 3))
-(define (individual-drawable i) (list-ref i 4))
-(define (individual-egg i) (list-ref i 5))
-(define (individual-pos i) (list-ref i 6))
+(define (individual-fitness i) (list-ref i 1))
+(define (individual-modify-fitness i v) (list-replace i 1 v))
+(define (individual-ancestral-fitness i) (list-ref i 2))
+(define (individual-generation i) (list-ref i 3))
+(define (individual-parent i) (list-ref i 4))
+(define (individual-drawable i) (list-ref i 5))
+(define (individual-egg i) (list-ref i 6))
+(define (individual-pos i) (list-ref i 7))
+(define (individual-phase i) (list-ref i 8))
 
 (define world-w 5000)
 (define world-h 500)
@@ -56,34 +56,39 @@
       (generate-image-pos2)
       (list (random world-w) (random world-h))))
 
-(define (make-population game samples)
-  (let ((new-eggs (- num-eggs-total (length samples))))
-    (append
-     (map
-      (lambda (sample)
-        (let ((program (egg-mutate (list-ref sample 0) 0.01))
-              (ancestral-fitness (list-ref sample 1))
-              (generation (list-ref sample 2))
-              (id (list-ref sample 3)))
-          (make-individual
-           0
-           ancestral-fitness
-           (+ generation 1)
-           id
-           (egg-drawable program #t)
-           program
-           (make-pos game))))
-      samples)
+(define (make-population game samples mutate phase)
+  (if (not (eq? phase "init"))
+      (map
+       (lambda (sample)
+         (let ((program (if (zero? mutate)
+                            (list-ref sample 0)
+                            (egg-mutate (list-ref sample 0) 0.01)))
+               (ancestral-fitness (list-ref sample 1))
+               (generation (list-ref sample 2))
+               (id (list-ref sample 3)))
+           (make-individual
+            id
+            0
+            ancestral-fitness
+            (+ generation 1)
+            id
+            (egg-drawable program #t)
+            program
+            (make-pos game)
+            phase)))
+         samples)
 
-     (build-list
-      new-eggs
-      (lambda (i)
-        ;; fixme
-        (let ((program (make-random-egg egg-complexity)))
-          (make-individual
-           0 0 0 0 (egg-drawable program #t)
-           program
-           (make-pos game))))))))
+      (build-list
+       num-eggs-total
+       (lambda (i)
+         ;; fixme
+         (msg "making random egg")
+         (let ((program (make-random-egg egg-complexity)))
+           (make-individual
+            0 0 0 0 0 (egg-drawable program #t)
+            program
+            (make-pos game)
+            phase))))))
 
 (define (make-egg-grid game samples x-off)
   (index-map
@@ -97,7 +102,7 @@
            (list
             (make-individual
              id
-             0 0 0
+             0 0 0 0
              (egg-drawable program #f)
              program
              (list (+ x-off xx) yy))
@@ -208,13 +213,12 @@
   (egglab-data-modify-images
    (egglab-data-modify-land d land) ()))
 
-(define (egglab-data-start-game d player-id time eggs offset)
+(define (egglab-data-start-game d player-id time eggs offset replicate)
   (list time eggs offset
         (list-ref d 3)
         (list-ref d 4)
         (list-ref d 5)
-        (random num-replicates)
-        0
+        replicate 0
         (list-ref d 8)
         player-id))
 
@@ -523,7 +527,7 @@
                        ;; individually parse the egg's code
                        (cons (JSON.parse (car d)) (cdr d)))
                      (list-ref data 2)))
-                   (list 0 0)))
+                   (list 0 0) 0))
                 c)))))
          (nightjar-generating-best-eggs c)))
 
@@ -678,35 +682,36 @@
       (image-button
        "" 835 455 "rotate" (find-image "yes.png")
        (lambda (c)
-         (server-call-mutate
-          "sample"
-          (list
-           (list "player-id" (egglab-data-player-id (game-data c)))
-           (list "population" (egglab-data-land (game-data c)))
-           (list "replicate" (egglab-data-replicate (game-data c)))
-           (list "count" num-eggs-from-population)
-           (list "top" selection-pop-size))
-          (lambda (c data)
-            (let ((ret (JSON.parse data)))
-              (let ((player-id (cadr (car ret)))
-                    (samples (cadr ret)))
-                (msg "GENERATING POPULATION")
-                (let ((pop (make-population
-                            "flicker"
-                            (if (eq? null samples)
-                                ()
-                                (map
-                                 (lambda (d)
-                                   ;; individually parse the egg's code
-                                   (cons (JSON.parse (car d)) (cdr d)))
-                                 samples)))))
-                  (nightjar-flicker-game
-                   (game-modify-data
-                    (lambda (d)
-                      (let ((time-now (- (js "new Date()") load-time)))
-                        (egglab-data-start-game
-                         d player-id time-now pop (list 0 0))))
-                    c)))))))
+         (let ((replicate (random num-replicates)))
+           (server-call-mutate
+            "sample"
+            (list
+             (list "player-id" (egglab-data-player-id (game-data c)))
+             (list "population" (egglab-data-land (game-data c)))
+             (list "replicate" replicate)
+             (list "count" num-eggs-from-population))
+            (lambda (c data)
+              (let ((ret (JSON.parse data)))
+                (let ((player-id (cadr (car ret)))
+                      (samples (cadr ret)))
+                  (let ((pop (make-population
+                              "flicker"
+                              (if (eq? null samples)
+                                  ()
+                                  (map
+                                   (lambda (d)
+                                     ;; individually parse the egg's code
+                                     (cons (JSON.parse (car d)) (cdr d)))
+                                   (cadr samples)))
+                              (if (eq? (car samples) "fill") 1 0)
+                              (car samples))))
+                    (nightjar-flicker-game
+                     (game-modify-data
+                      (lambda (d)
+                        (let ((time-now (- (js "new Date()") load-time)))
+                          (egglab-data-start-game
+                           d player-id time-now pop (list 0 0) replicate)))
+                      c))))))))
          (nightjar-generating-eggs c)))
 
      (image-button
@@ -891,12 +896,12 @@
   (server-call
    "add"
    (list
+    (list "phase" (individual-phase egg))
     (list "population" (egglab-data-land (game-data c)))
     (list "replicate" (egglab-data-replicate (game-data c)))
+    (list "egg-id" (individual-id egg))
     (list "player-id" (egglab-data-player-id (game-data c)))
-    (list "fitness" (+ (individual-ancestral-fitness egg) (time-elapsed c)))
-    (list "individual-fitness" (time-elapsed c))
-    (list "generation" (individual-generation egg))
+    (list "fitness" (time-elapsed c))
     (list "parent" (individual-parent egg))
     (list "image" (car (egglab-data-images (game-data c))))
     (list "x-pos" (car (individual-pos egg)))
