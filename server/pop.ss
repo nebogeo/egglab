@@ -23,6 +23,10 @@
 (define min-tests 3)
 (define pop-top 64)
 
+;;(define max-pop-size 28)
+;;(define min-tests 2)
+;;(define pop-top 14)
+
 (define (pop-least-tested db population replicate)
   (let* ((gen (get-state db population replicate "generation"))
          (s (select
@@ -190,11 +194,8 @@
 (define (pop-stats db population)
   (let ((s (select
             db (string-append
-                ;;"select distinct generation, generation from ("
-                "select distinct e.generation, avg(e.fitness/e.tests) "
-                "from egg as e where e.population = ? order by generation"
-                ;;") order by generation"
-                )
+                "select e.generation, avg(e.fitness/e.tests) "
+                "from egg as e where e.population = ? group by generation")
             population)))
     (if (null? s)
         '()
@@ -204,6 +205,27 @@
             (vector-ref i 0)
             (vector-ref i 1)))
          (cdr s)))))
+
+;; top n eggs
+(define (top-eggs db population count)
+  (let ((s (select
+            db (string-append
+                "select e.genotype, (e.fitness / e.tests), e.id, e.replicate, e.generation from egg as e "
+                "where e.population = ? "
+                "order by (e.fitness / e.tests) desc limit ?")
+            population count)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0)
+                 (vector-ref i 1)
+                 (vector-ref i 2)
+                 (vector-ref i 3)
+                 (vector-ref i 4)))
+         (cdr s)))))
+
+
 
 ;(define (sample-eggs-from-top db population replicate count top)
 ;  (let ((f (get-fitness-thresh db population replicate top)))

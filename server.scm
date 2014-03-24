@@ -40,7 +40,7 @@
 (define db (open-db db-name))
 (open-log "log.txt")
 
-(dbg (get-family-tree db (list 164 #f)))
+;; (dbg (get-family-tree db (list 164 #f)))
 
 (define registered-requests
   (list
@@ -121,13 +121,15 @@
         (family-tree db (string->number id))))))
 
    (register
-    (req 'get-stats '(count))
-    (lambda (count)
+    (req 'get-stats '())
+    (lambda ()
       (pluto-response
-       (string-append
-        (scheme->json
-         (get-stats
-          db (string->number count)))))))
+       (scheme->json
+        (list
+         (pop-stats db "CF")
+         (pop-stats db "MV")
+         (pop-stats db "CP"))))))
+
 
    (register
     (req 'init-player '())
@@ -191,10 +193,7 @@
         (list
          (get-egghunt db (string->number egghunt-id))
          (get-egghunt-eggs db (string->number egghunt-id))
-       )))))
-
-
-   ))
+       )))))))
 
 (define (start request)
   (let ((values (url-query (request-uri request))))

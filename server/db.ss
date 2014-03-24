@@ -129,42 +129,6 @@
            (list (vector-ref i 0) (vector-ref i 1)))
          (cdr s)))))
 
-;; top n eggs
-(define (top-eggs db population count)
-  (let ((s (select
-            db (string-append
-                "select e.genotype, e.fitness, e.id, e.replicate, e.generation from egg as e "
-                "where e.population = ? "
-                "order by e.fitness desc limit ?")
-            population count)))
-    (if (null? s)
-        '()
-        (map
-         (lambda (i)
-           (list (vector-ref i 0)
-                 (vector-ref i 1)
-                 (vector-ref i 2)
-                 (vector-ref i 3)
-                 (vector-ref i 4)))
-         (cdr s)))))
-
-(define (get-stats db count)
-  (let ((s (select
-            db (string-append
-                "select s.av_fitness, s.max_fitness, s.min_fitness, s.egg_count, s.time_stamp from stats as s "
-                "order by s.time_stamp desc limit ?")
-            count)))
-    (if (null? s)
-        '()
-        (map
-         (lambda (i)
-           (list (vector-ref i 0)
-                 (vector-ref i 1)
-                 (vector-ref i 2)
-                 (vector-ref i 3)))
-         (cdr s)))))
-
-
 (define (get-egghunt db egghunt-id)
   (let ((s (select
             db (string-append

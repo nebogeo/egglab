@@ -76,7 +76,7 @@
             program
             (make-pos game)
             phase)))
-         samples)
+       (shuffle samples))
 
       (build-list
        num-eggs-total
@@ -537,7 +537,7 @@
         (lambda (c)
           (server-call-mutate
            "get-stats"
-           (list (list "count" 50))
+           (list)
            (lambda (c data)
              (nightjar-fit-graph (JSON.parse data) c)))
           c))
@@ -609,43 +609,84 @@
 (define (min-max l)
   (foldl
    (lambda (i r)
-     (let ((i (car i)))
-       (list
-        (if (< i (car r)) i (car r))
-        (if (> i (cadr r)) i (cadr r)))))
+     (list
+      (if (< i (car r)) i (car r))
+      (if (> i (cadr r)) i (cadr r))))
    (list 9999999 0)
    l))
 
-(define (draw-fitness-graph ctx table x y w h)
+(define (meta-min-max-inner ll r)
+  (foldl
+   (lambda (i r)
+     (list
+      (if (< i (car r)) i (car r))
+      (if (> i (cadr r)) i (cadr r))))
+   r ll))
+
+(define (meta-min-max l)
+  (foldl
+   (lambda (ll r)
+     (meta-min-max-inner ll r))
+   (list 9999999 0)
+   l))
+
+(define (longest l)
+  (foldl
+   (lambda (i r)
+     (if (> (length i) r) (length i) r))
+   0
+   l))
+
+(define (draw-graph ctx col table x y w h x-per-sample mm)
+;;  (msg table)
   (set! ctx.strokeStyle "#fff")
   (ctx.strokeRect x y w h)
+  (set! ctx.strokeStyle col)
   (when (not (null? table))
-        (let ((x-per-sample (/ w (length table)))
-              (mm (min-max table)))
-          (ctx.beginPath)
-          (ctx.moveTo x (+ y h))
-          (set! ctx.lineWidth 3)
-          (index-for-each
-           (lambda (i s)
-             (let ((s (car s)))
-               (ctx.lineTo (+ x (* (+ i 1) x-per-sample))
-                           (+ y (* h (/ (- s (car mm)) (- (cadr mm) (car mm))))))))
-           table)
-          (ctx.stroke)
-          (set! ctx.lineWidth 1)
+        (ctx.beginPath)
+        (ctx.moveTo x (+ y h))
+        (set! ctx.lineWidth 3)
+        (index-for-each
+         (lambda (i s)
+           (ctx.lineTo (+ x (* (+ i 1) x-per-sample))
+                       (+ y (* h (/ (- s (car mm)) (- (cadr mm) (car mm)))))))
+         table)
+        (ctx.stroke)
+        (set! ctx.lineWidth 1)
+        ))
 
-          (ctx.save)
-          (ctx.translate x (+ y -170 (/ h 2)))
-          (ctx.rotate (/ Math.PI 2))
-          (ctx.fillText "Average time in seconds" 0 0)
-          (ctx.restore)
-          (ctx.fillText (time-to-seconds (cadr mm)) x y)
-          (ctx.fillText (time-to-seconds (car mm)) x (+ y h))
+(define (draw-fitness-graph ctx table x y w h)
+  (let ((table (list (map (lambda (i) (cadr i)) (list-ref table 0))
+                     (map (lambda (i) (cadr i)) (list-ref table 1))
+                     (map (lambda (i) (cadr i)) (list-ref table 2)))))
+    (let ((x-per-sample (/ w (longest table)))
+          (mm (meta-min-max table)))
+      (draw-graph ctx "#f00" (list-ref table 0) x y w h x-per-sample mm)
+      (draw-graph ctx "#0f0" (list-ref table 1) x y w h x-per-sample mm)
+      (draw-graph ctx "#00f" (list-ref table 2) x y w h x-per-sample mm)
 
-          (ctx.fillText "Num eggs recorded" (+ x h -100) (+ 20 y (/ w 2)))
-          (ctx.fillText "0" x (+ 20 y h))
-          (ctx.fillText (* (length table) 10) (+ x w) (+ y h 20))
-          )))
+  (ctx.save)
+  (ctx.translate x (+ y -170 (/ h 2)))
+  (ctx.rotate (/ Math.PI 2))
+  (ctx.fillText "Average time in seconds" 0 0)
+  (ctx.restore)
+
+  (set! ctx.fillStyle "#f00")
+  (ctx.fillText "Mozambique nightjar" (+ x 50) (+ y 40))
+  (set! ctx.fillStyle "#0f0")
+  (ctx.fillText "Pennant-winged nightjar" (+ x 50) (+ y 80))
+  (set! ctx.fillStyle "#00f")
+  (ctx.fillText "Fiery-necked nightjar" (+ x 50) (+ y 120))
+
+  (set! ctx.fillStyle "#fff")
+  (ctx.fillText "Generations" (+ x h -100) (+ 20 y (/ w 2)))
+  (ctx.fillText "0" x (+ 20 y h))
+  (ctx.fillText (longest table) (+ x w) (+ y h 20))
+
+  (ctx.fillText (time-to-seconds (cadr mm)) x (- y 5))
+  (ctx.fillText (time-to-seconds (car mm)) x (+ y h -5))
+
+  )))
 
 (define (nightjar-fit-graph table c)
   (game-modify-update
@@ -728,7 +769,7 @@
    (game-modify-render
     (lambda (ctx)
       (robo-nightjar-says ctx 20 "Please wait while I generate some eggs just for you..."))
-    c)))
+    (game-modify-buttons (list) c))))
 
 (define (nightjar-thanks c)
   (game-modify-update

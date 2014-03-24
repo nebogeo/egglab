@@ -202,6 +202,7 @@
 
 ;; mutate structure, then prune it before mutating the values
 (define (egg-mutate egg r)
+  (msg "mutating..")
   (value-mutate (structure-prune (structure-mutate egg r) egg-complexity)  r))
 
 (define (egg-drawable program rotate)
