@@ -17,8 +17,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; gp
 
-(define num-eggs-total 15)
-(define num-eggs-from-population 15)
+(define num-eggs-total 20)
+(define num-eggs-from-population 20)
 (define num-best-eggs 16)
 (define selection-pop-size 256)
 (define photo-time-allowed 10)
@@ -497,7 +497,7 @@
          c))
 
       (egglab-button
-       "Most sucessful eggs" 600 400 (find-image "bigbutton-2.png")
+       "Most successful eggs" 600 400 (find-image "bigbutton-2.png")
        "See my most successful eggs for each species."
        (lambda (c)
          (server-call-mutate
@@ -661,25 +661,25 @@
                      (map (lambda (i) (cadr i)) (list-ref table 2)))))
     (let ((x-per-sample (/ w (longest table)))
           (mm (meta-min-max table)))
-      (draw-graph ctx "#f00" (list-ref table 0) x y w h x-per-sample mm)
-      (draw-graph ctx "#0f0" (list-ref table 1) x y w h x-per-sample mm)
-      (draw-graph ctx "#00f" (list-ref table 2) x y w h x-per-sample mm)
+      (draw-graph ctx "#f77" (list-ref table 0) x y w h x-per-sample mm)
+      (draw-graph ctx "#7f7" (list-ref table 1) x y w h x-per-sample mm)
+      (draw-graph ctx "#77f" (list-ref table 2) x y w h x-per-sample mm)
 
   (ctx.save)
-  (ctx.translate x (+ y -170 (/ h 2)))
+  (ctx.translate (+ x 10) (+ y -170 (/ h 2)))
   (ctx.rotate (/ Math.PI 2))
   (ctx.fillText "Average time in seconds" 0 0)
   (ctx.restore)
 
-  (set! ctx.fillStyle "#f00")
+  (set! ctx.fillStyle "#f77")
   (ctx.fillText "Mozambique nightjar" (+ x 50) (+ y 40))
-  (set! ctx.fillStyle "#0f0")
+  (set! ctx.fillStyle "#7f7")
   (ctx.fillText "Pennant-winged nightjar" (+ x 50) (+ y 80))
-  (set! ctx.fillStyle "#00f")
+  (set! ctx.fillStyle "#77f")
   (ctx.fillText "Fiery-necked nightjar" (+ x 50) (+ y 120))
 
   (set! ctx.fillStyle "#fff")
-  (ctx.fillText "Generations" (+ x h -100) (+ 20 y (/ w 2)))
+  (ctx.fillText "Generations" (+ x h -100) (+ 25 y (/ w 2)))
   (ctx.fillText "0" x (+ 20 y h))
   (ctx.fillText (longest table) (+ x w) (+ y h 20))
 

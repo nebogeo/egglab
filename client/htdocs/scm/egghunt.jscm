@@ -37,7 +37,7 @@
     (list "top" 100))
    (lambda (c data)
      (let ((e (JSON.parse data)))
-       (let ((samples (cadr e)))
+       (let ((samples (cadr (cadr e))))
          (game-modify-draggables
           (cons
            (draggable-horizontal
