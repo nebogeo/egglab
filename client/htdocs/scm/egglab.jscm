@@ -56,13 +56,19 @@
       (generate-image-pos2)
       (list (random world-w) (random world-h))))
 
+(define (sqr x) (* x x))
+
+(define (calc-mutation-rate)
+  (* (sqr (* (rndf) 2.236067977)) 0.01)) ;; sqrt of 5 = 0-5%
+
 (define (make-population game samples mutate phase)
   (if (not (eq? phase "init"))
       (map
        (lambda (sample)
          (let ((program (if (zero? mutate)
                             (list-ref sample 0)
-                            (egg-mutate (list-ref sample 0) 0.01)))
+                            (egg-mutate (list-ref sample 0)
+                                        (calc-mutation-rate))))
                (ancestral-fitness (list-ref sample 1))
                (generation (list-ref sample 2))
                (id (list-ref sample 3)))
@@ -407,16 +413,34 @@
     (list
 
     (image-button
-     "Back" 1150 720 "jumpy" (find-image "button.png")
-     (lambda (c) (nightjar-menu c)))
+     "Sound" 1030 720 "jumpy"
+     (if (zero? (game-mute c))
+         (find-image "mute-off.png")
+         (find-image "mute-on.png"))
+     (lambda (c)
+       (msg "hello")
+       (game-modify-buttons
+        (cons
+         (button-modify-drawable
+          (car (game-buttons c))
+          (if (zero? (game-mute c))
+              (find-image "mute-on.png")
+              (find-image "mute-off.png")))
+         (cdr (game-buttons c)))
+        (game-flip-mute c))))
 
     (image-button
-     "Data" 1000 720 "jumpy" (find-image "button.png")
+     "Back" 1180 720 "jumpy" (find-image "button.png")
+     (lambda (c) (nightjar-menu c)))
+
+
+    (image-button
+     "Eggs" 880 720 "jumpy" (find-image "button.png")
      (lambda (c)
        (nightjar-env c)))
 
     (egglab-button
-     "Mozambique nightjar" 200 500 (find-image "medbutton-1.png")
+     "Mozambique nightjar" 200 500 (find-image "play-button.png")
      "This nightjar likes to lay it's eggs in open areas."
       (lambda (c)
         (async-load-images c "CF" cf_images)
@@ -428,7 +452,7 @@
 
     (egglab-button
      "Pennant-winged nightjar" 605 500
-     (find-image "medbutton-1.png")
+     (find-image "play-button.png")
      "This nightjar is not fussy and likes to nest anywhere."
      (lambda (c)
        (async-load-images c "MV" (append cf_images cp_images))
@@ -440,7 +464,7 @@
 
     (egglab-button
      "Fiery-necked nightjar" 1030 500
-     (find-image "medbutton-1.png")
+     (find-image "play-button.png")
      "This nightjar likes nesting in leaf litter."
      (lambda (c)
        (async-load-images c "CP" cp_images)
@@ -544,7 +568,7 @@
 
 
       (image-button
-       "Back" 1150 720 "jumpy" (find-image "button.png")
+       "Play again!" 1100 720 "jumpy" (find-image "button.png")
        (lambda (c) (nightjar-choose-location c))))
      c))))
 
@@ -768,7 +792,7 @@
      c)
    (game-modify-render
     (lambda (ctx)
-      (robo-nightjar-says ctx 20 "Please wait while I generate some eggs just for you..."))
+      (robo-nightjar-says ctx 20 "Please wait while I generate some eggs just for you... GET READY TO PLAY!"))
     (game-modify-buttons (list) c))))
 
 (define (nightjar-thanks c)
@@ -777,11 +801,11 @@
    (game-modify-render
     (lambda (ctx)
       (set! ctx.font "normal 30pt 'Press Start 2P'")
-      (wrap-text ctx "Thanks for playing!" 0 200 1000 70)
-      (wrap-text ctx (string-append "Your average time was: "
+      (wrap-text ctx "Thanks for playing! With your help the eggs are slowly getting harder to spot - keep playing and see what happens..." 0 200 1000 50)
+      (text-flashy-render ctx (string-append "Your average time was: "
                                     (time-to-seconds (egglab-data-player-time (game-data c)))
                                     " seconds.")
-                 0 250 1000 70)
+                 225 400 (game-time c))
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
 
     (game-modify-postrender
@@ -789,7 +813,7 @@
      (game-modify-buttons
       (list
        (image-button
-        "Continue" (/ screen-width 2) 500 "jumpy" (find-image "button.png")
+        "Continue" (/ screen-width 2) 600 "jumpy" (find-image "button.png")
         (lambda (c)
           (if (eq? (egglab-data-username (game-data c)) "???")
               (nightjar-enter-name c)
@@ -802,7 +826,7 @@
                   (list "score" (egglab-data-player-time (game-data c)))
                   (list "population" (egglab-data-land (game-data c)))
                   (list "replicate" (egglab-data-replicate (game-data c)))))
-                (nightjar-choose-location c))))))
+                (nightjar-env c))))))
       c)))))
 
 (define (type-into str ch)
@@ -879,7 +903,7 @@
                          (list "name" (egglab-data-username (game-data c)))
                          (list "played-before" "#f")
                          (list "age-range" 2)))
-                       (nightjar-choose-location c))))
+                       (nightjar-env c))))
       )
      c))))
 
@@ -1173,7 +1197,9 @@
    "button.png"
    "bigbutton-1.png"
    "bigbutton-2.png"
-   "medbutton-1.png"
+   "play-button.png"
+   "mute-on.png"
+   "mute-off.png"
    "egg.png"
    "cf.png"
    "cp.png"

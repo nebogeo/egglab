@@ -222,13 +222,14 @@
 (define (draw-terminal ctx program)
   (cond
    ((eq? (terminal-type program) "colour")
+    (set! ctx.globalAlpha (list-ref (terminal-colour program) 3))
     (set! ctx.fillStyle (string-append
-                         "rgba("
+                         "rgb("
                          (list-ref (terminal-colour program) 0) ","
                          (list-ref (terminal-colour program) 1) ","
-                         (list-ref (terminal-colour program) 2) ","
-                         (list-ref (terminal-colour program) 3) ")"))
-    (ctx.fillRect 0 0 128 128))
+                         (list-ref (terminal-colour program) 2) ")"))
+    (ctx.fillRect 0 0 128 128)
+    (set! ctx.globalAlpha 1.0))
    (else
     (let ((image-name
            (if (eq? (terminal-type program) "constant-image")

@@ -121,8 +121,9 @@
   (inner_find-sound fn sound-lib))
 
 (define (play-sound sound)
- (let ((snd (find-sound sound)))
-    (snd.play)))
+  (when (game-mute game)
+        (let ((snd (find-sound sound)))
+          (snd.play))))
 
 
 
@@ -207,6 +208,7 @@
 (define (button-jitter b) (list-ref b 6))
 (define (button-callback b) (list-ref b 7))
 (define (button-drawable b) (list-ref b 8))
+(define (button-modify-drawable b v) (list-replace b 8 v))
 (define (button-offs b) (list-ref b 9))
 (define (button-mouse-over b) (list-ref b 10))
 (define (button-modify-mouse-over b v) (list-replace b 10 v))
@@ -649,7 +651,7 @@
 (define (make-new-game)
   (list 0 (lambda (ctx) 0) (lambda (t c) c)
         () () 0 0 () (list 0 0) (lambda (e c) c)
-        (lambda (c) c) (lambda (ctx) 0)))
+        (lambda (c) c) (lambda (ctx) 0) 1))
 
 (define (game-time g) (list-ref g 0))
 (define (game-modify-time v g) (list-replace g 0 v))
@@ -675,6 +677,9 @@
 (define (game-modify-over-nothing-hook v g) (list-replace g 10 v))
 (define (game-postrender g) (list-ref g 11))
 (define (game-modify-postrender v g) (list-replace g 11 v))
+(define (game-mute g) (list-ref g 12))
+(define (game-modify-mute g v) (list-replace g 12 v))
+(define (game-flip-mute g) (game-modify-mute g (if (zero? (game-mute g)) 1 0)))
 
 (define (game-modify-mouse g x y)
   (game-modify-mx
