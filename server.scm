@@ -104,14 +104,14 @@
 
 
    (register
-    (req 'top-eggs '(count))
+    (req 'top-eggs '(replicate count))
     (lambda (count)
       (pluto-response
        (scheme->json
         (list
-         (top-eggs db "CF" (string->number count))
-         (top-eggs db "MV" (string->number count))
-         (top-eggs db "CP" (string->number count)))))))
+         (top-eggs db "CF" replicate (string->number count))
+         (top-eggs db "MV" replicate (string->number count))
+         (top-eggs db "CP" replicate (string->number count)))))))
 
    (register
     (req 'family-tree '(id))

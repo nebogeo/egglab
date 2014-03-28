@@ -186,7 +186,14 @@
       (set! ctx.fillStyle "#fff"))
     canvas))
 
-(define (draw-egg-family-tree ctx ancestors)
+
+(define (render-egg-family-tree ancestors)
+  (map
+   (lambda (anc)
+     (egg-drawable (JSON.parse (list-ref (car anc) 1)) #f))
+   ancestors))
+
+(define (draw-egg-family-tree ctx ancestors eggs)
 
   (let ((w (/ (- screen-width 400) (length ancestors))))
     (set! ctx.fillStyle "#000")
@@ -196,12 +203,15 @@
      (lambda (i anc)
        (let ((x (+ (* i w) 100)))
 
-         (fill-centre-text ctx (+ "" (car (car anc))) x 200)
+         (ctx.drawImage (list-ref eggs i) x 250)
 
-         (index-for-each
-          (lambda (i child)
-            (fill-centre-text ctx (+ "" (car child)) x (+ 400 (* i 20))))
-          (cadr anc))
+         (fill-centre-text ctx (+ "" (car (car anc)) " " (list-ref (car anc) 2)) x 200)
+         (fill-centre-text ctx (+ "" (time-to-seconds (list-ref (car anc) 3))) x 500)
+
+         ;;(index-for-each
+         ;; (lambda (i child)
+         ;;   (fill-centre-text ctx (+ "" (car child) " " (list-ref child 2)) x (+ 400 (* i 20))))
+         ;; (cadr anc))
          ))
      ancestors))
 
@@ -524,35 +534,37 @@
        "Most successful eggs" 600 400 (find-image "bigbutton-2.png")
        "See my most successful eggs for each species."
        (lambda (c)
-         (server-call-mutate
-          "top-eggs"
-          (list
-           (list "count" num-best-eggs))
-          (lambda (c data)
-            (let ((data (JSON.parse data)))
-              (nightjar-best
-               (game-modify-data
-                (lambda (d)
-                  (egglab-data-start-game
-                   d (egglab-data-player-id d) 0
-                   (make-best-population
-                    c (map
+         (let ((replicate (random num-replicates)))
+           (server-call-mutate
+            "top-eggs"
+            (list
+             (list "replicate" replicate)
+             (list "count" num-best-eggs))
+            (lambda (c data)
+              (let ((data (JSON.parse data)))
+                (nightjar-best
+                 (game-modify-data
+                  (lambda (d)
+                    (egglab-data-start-game
+                     d (egglab-data-player-id d) 0
+                     (make-best-population
+                      c (map
+                         (lambda (d)
+                           ;; individually parse the egg's code
+                           (cons (JSON.parse (car d)) (cdr d)))
+                         (list-ref data 0))
+                      (map
                        (lambda (d)
                          ;; individually parse the egg's code
                          (cons (JSON.parse (car d)) (cdr d)))
-                       (list-ref data 0))
-                    (map
-                     (lambda (d)
+                       (list-ref data 1))
+                      (map
+                       (lambda (d)
                          ;; individually parse the egg's code
                          (cons (JSON.parse (car d)) (cdr d)))
-                     (list-ref data 1))
-                    (map
-                     (lambda (d)
-                       ;; individually parse the egg's code
-                       (cons (JSON.parse (car d)) (cdr d)))
-                     (list-ref data 2)))
-                   (list 0 0) 0))
-                c)))))
+                       (list-ref data 2)))
+                     (list 0 0) 0))
+                  c) replicate)))))
          (nightjar-generating-best-eggs c)))
 
       (egglab-button
@@ -1094,7 +1106,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (nightjar-best c)
+(define (nightjar-best c replicate)
   (game-modify-update
    (lambda (t c) c)
    (game-modify-render
@@ -1105,8 +1117,9 @@
       (wrap-text ctx "Fiery-necked nightjar" 400 50 400 70)
       (set! ctx.font "normal 15pt 'Press Start 2P'")
       (robo-nightjar-says-bottom
-       ctx 20
-       "These are my best eggs for each species. Click on an egg to see how it's made.")
+       ctx 18
+       (string-append "These are my best eggs for each species in replicate "
+                      replicate ". Click on an egg to see how it's made."))
       (set! ctx.font "normal 10pt 'Press Start 2P'"))
 
     (game-modify-buttons
@@ -1144,31 +1157,31 @@
       "Back" 1150 720 #f (find-image "button.png")
       (lambda (c)
         (nightjar-best c)))
-;;   (image-button
-;;      "Family Tree" 1150 520 #f (find-image "button.png")
-;;      (lambda (c)
-;;        (server-call-mutate
-;;         "family-tree"
-;;         (list (list "id" (individual-id egg))) ;; only works for the viz screens
-;;         (lambda (c data)
-;;           (msg data)
-;;           (nightjar-family-tree c egg (JSON.parse data))))
-;;        c))
+   (image-button
+      "Family Tree" 1150 520 #f (find-image "button.png")
+      (lambda (c)
+        (server-call-mutate
+         "family-tree"
+         (list (list "id" (individual-id egg))) ;; only works for the viz screens
+         (lambda (c data)
+           (let ((d (JSON.parse data)))
+             (nightjar-family-tree c egg image d (render-egg-family-tree d)))))
+        c))
      )
     c)))
 
-(define (nightjar-family-tree c egg ancestors)
+(define (nightjar-family-tree c egg image ancestors eggs)
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (draw-egg-family-tree ctx ancestors)
+     (draw-egg-family-tree ctx ancestors eggs)
      (ctx.fillText "Egg family tree" 20 50))
    (game-modify-buttons
     (list
      (image-button
       "Back" 1150 720 #f (find-image "button.png")
       (lambda (c)
-        (nightjar-egg-view c egg))))
+        (nightjar-egg-view c egg image))))
     c)))
 
 

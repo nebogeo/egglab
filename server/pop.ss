@@ -207,13 +207,14 @@
          (cdr s)))))
 
 ;; top n eggs
-(define (top-eggs db population count)
+(define (top-eggs db population replicate count)
   (let ((s (select
             db (string-append
                 "select e.genotype, (e.fitness / e.tests), e.id, e.replicate, e.generation from egg as e "
-                "where e.population = ? "
+                "where e.population = ? and e.replicate = ? "
+                "and e.generation = ? "
                 "order by (e.fitness / e.tests) desc limit ?")
-            population count)))
+            population replicate (get-state db population replicate "generation") count)))
     (if (null? s)
         '()
         (map
@@ -236,8 +237,17 @@
 
 ;; return a bunch of (id genome) lists for inheritence viz
 
+(define (get-individual db id)
+  (let ((s (select db "select e.parent, e.genotype, e.generation, (e.fitness/e.tests) from egg as e where e.id = ? " id)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list (vector-ref i 0) (vector-ref i 1) (vector-ref i 2) (vector-ref i 3)))
+         (cdr s)))))
+
 (define (family-tree db id)
-  (get-family-tree db (list id #f)))
+  (get-family-tree db (car (get-individual db id))))
 
 (define (get-family-tree db egg)
   (let ((p (get-parent db egg)))
@@ -247,21 +257,21 @@
               (get-family-tree db (car p))))))
 
 (define (get-parent db egg)
-  (let ((s (select db "select e.parent, e.genotype from egg as e where e.id = ? " (car egg))))
+  (let ((s (select db "select e.parent, e.genotype, e.generation, (e.fitness/e.tests) from egg as e where e.id = ? " (car egg))))
     (if (null? s)
         '()
         (map
          (lambda (i)
-           (list (vector-ref i 0) (vector-ref i 1)))
+           (list (vector-ref i 0) (vector-ref i 1) (vector-ref i 2) (vector-ref i 3)))
          (cdr s)))))
 
 (define (get-children db egg)
-  (let ((s (select db "select e.id, e.genotype from egg as e where e.parent = ? " (car egg))))
+  (let ((s (select db "select e.id, e.genotype, e.generation,  (e.fitness/e.tests) from egg as e where e.parent = ? " (car egg))))
     (if (null? s)
         '()
         (map
          (lambda (i)
-           (list (vector-ref i 0) (vector-ref i 1)))
+           (list (vector-ref i 0) (vector-ref i 1) (vector-ref i 2) (vector-ref i 3)))
          (cdr s)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
