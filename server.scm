@@ -105,7 +105,7 @@
 
    (register
     (req 'top-eggs '(replicate count))
-    (lambda (count)
+    (lambda (replicate count)
       (pluto-response
        (scheme->json
         (list
