@@ -381,13 +381,13 @@
     (list
 
      (egglab-button
-      "Play the main game" 600 200 (find-image "bigbutton-1.png")
+      "Play the main game" 600 300 (find-image "bigbutton-1.png")
       "Try and find new eggs. Their camouflage changes as more people play."
       (lambda (c)
         (nightjar-choose-location c)))
 
      (egglab-button
-      "Challenge your friends" 600 400 (find-image "bigbutton-2.png")
+      "Challenge your friends" 600 500 (find-image "bigbutton-2.png")
       "Make an Easter egg hunt for your friends to play."
       (lambda (c)
         (set! window.location "egghunt.html")
