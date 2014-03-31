@@ -99,7 +99,7 @@
       ;; add to the first generation
       (insert-egg
        db population replicate timestamp player-id
-       fitness 0 0 0 image x-pos y-pos genotype)
+       fitness 1 0 0 image x-pos y-pos genotype)
       ;; check if we are finished
       (when (>= (pop-size db population replicate) max-pop-size)
             (set-state db population replicate "phase" "test")))
