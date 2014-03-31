@@ -644,7 +644,7 @@
      c)
    (game-modify-render
     (lambda (ctx)
-      (robo-nightjar-says ctx 25 "Please wait while I calculate the best eggs for you..."))
+      (robo-nightjar-says ctx 20 "Please wait while I calculate the best eggs from one of my populations for you..."))
     (game-modify-buttons (list) c))))
 
 
@@ -1184,7 +1184,7 @@
       (robo-nightjar-says-bottom
        ctx 18
        (string-append "These are my best eggs for each species in population "
-                      replicate ". Click on an egg to see it's ancestors."))
+                      (+ replicate 1) ". Click on an egg to see it's ancestors."))
       (set! ctx.font "normal 10pt 'Press Start 2P'"))
 
     (game-modify-buttons

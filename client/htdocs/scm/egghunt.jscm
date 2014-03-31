@@ -68,7 +68,7 @@
      (lambda (ctx)
        (ctx.drawImage (find-image "eggs.jpg") 0 0)
        (set! ctx.font "normal 40pt 'Press Start 2P'")
-       (wrap-text ctx "Easter Robot Nightjar's Easter Egg Hunt Construction Kit!" 0 160 1000 50)
+       (wrap-text ctx "Easter Robot Nightjar's Easter Egg Hunt Construction Kit!" 0 150 1000 60)
        (robo-nightjar-says ctx 18 "Help ecology research by making Easter egg hunts with my artificial eggs, and send them to your friends!" 1)
        (set! ctx.font "normal 15pt 'Press Start 2P'")
        (set! ctx.globalAlpha 0.8)
