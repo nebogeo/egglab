@@ -411,6 +411,17 @@
   (set! ctx.font "normal 15pt 'Press Start 2P'")
   (set! ctx.fillStyle "#fff"))
 
+(define (robo-nightjar-says-bottom2 ctx size text)
+  (robo-state-machine)
+  (ctx.drawImage (find-image robo-image) 50 580)
+  (ctx.drawImage (find-image "bubble2.png") 360 640)
+  (set! ctx.fillStyle "#000")
+  (set! ctx.font (string-append "normal " size "pt 'Press Start 2P'"))
+  (wrap-text ctx text -10 678 360 size+8)
+  (set! ctx.font "normal 15pt 'Press Start 2P'")
+  (set! ctx.fillStyle "#fff"))
+
+
 (define (robo-nightjar-says-bot-left ctx size text)
   (robo-state-machine)
   (ctx.drawImage (find-image robo-image) -40 590)

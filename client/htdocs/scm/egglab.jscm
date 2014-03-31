@@ -393,11 +393,10 @@
         (set! window.location "egghunt.html")
         c))
 
-     (egglab-button
-      "Browser check" 600 500 (find-image "bigbutton-1.png")
-      "Make sure your browser draws my eggs properly."
-      (lambda (c)
-        (nightjar-browser-test
+    (image-button
+     "Browser check" 500 700 "jumpy" (find-image "button.png")
+     (lambda (c)
+       (nightjar-browser-test
          c
          (list
            (egg-drawable
@@ -418,12 +417,11 @@
            )
            )))
 
-     (egglab-button
-      "Find out more" 600 650 (find-image "bigbutton-2.png")
-      "Check out our website to learn more about the science of camouflage."
-      (lambda (c)
-        (set! window.location "http://nightjar.exeter.ac.uk")
-        c))
+    (image-button
+     "Website" 150 700 "jumpy" (find-image "button.png")
+     (lambda (c)
+       (set! window.location "http://nightjar.exeter.ac.uk")
+       c))
 
 
      )
@@ -874,13 +872,23 @@
       (text-flashy-render ctx (string-append "Your average time was: "
                                     (time-to-seconds (egglab-data-player-time (game-data c)))
                                     " seconds.")
-                 225 400 (game-time c))
+                          225 400 (game-time c))
+
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
 
     (game-modify-postrender
      (lambda (ctx) 0)
      (game-modify-buttons
       (list
+
+       (image-button "" 200 600 "none" (find-image "twitter.png")
+                     (lambda (c)
+                       (set! window.location "https://twitter.com/ProjectNightjar") c))
+
+       (image-button "" 1000 600 "none" (find-image "facebook.png")
+                     (lambda (c)
+                       (set! window.location "https://www.facebook.com/SensoryEcology") c))
+
        (image-button
         "Continue" (/ screen-width 2) 600 "jumpy" (find-image "button.png")
         (lambda (c)
@@ -1357,6 +1365,8 @@
    "foam.png"
    "sensory-ecology.png"
    "browser-check.png"
+   "facebook.png"
+   "twitter.png"
    )
   egg-images)
  (lambda ()

@@ -95,7 +95,7 @@
      (lambda (ctx)
        (ctx.drawImage (find-image "eggs.jpg") 0 0)
        (set! ctx.font "normal 70pt 'Press Start 2P'")
-       (robo-nightjar-says ctx 17 "You have been sent an easter egghunt made with my artificial eggs to help ecology and evolution research!" 1)
+       (robo-nightjar-says ctx 17 "I have an Easter egg hunt made specially for you with my artificial eggs to help ecology and evolution research!" 1)
        (set! ctx.font "normal 40pt 'Press Start 2P'")
        (wrap-text ctx "Easter Robot Nightjar says:" 0 160 1000 50)
        (set! ctx.font "normal 15pt 'Press Start 2P'")
@@ -159,7 +159,11 @@
      (let ((t (+ 1000 (* (time-elapsed c) (- 0 speed)))))
        (cond
         ((> t -4000)
-         (game-modify-world-offset c (list t 0)))
+         (if (eq? (length (game-buttons c)) 1)
+             (game-modify-postrender
+              (lambda (ctx) 0)
+              (nightjar-well-done (game-modify-world-offset c (list 0 0))))
+             (game-modify-world-offset c (list t 0))))
         (else
          (game-modify-postrender
           (lambda (ctx) 0)
@@ -172,8 +176,8 @@
    (game-modify-postrender
     (lambda (ctx)
       (set! ctx.font "normal 25pt 'Press Start 2P'")
-      (wrap-text ctx "Easter robot nightjar's amazing easter egg hunt!" 0 50 1000 1000)
-      (robo-nightjar-says-bottom ctx 20 "See if you can click on all five of my eggs!")
+      (wrap-text ctx "Easter robot nightjar's amazing Easter egg hunt!" 0 50 1000 1000)
+      (robo-nightjar-says-bottom2 ctx 28 "See if you can click on all five of my eggs!")
       (set! ctx.font "normal 15pt 'Press Start 2P'"))
     (game-modify-render (lambda (ctx) 0) c))))
 
@@ -230,10 +234,10 @@
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (wrap-text ctx "Thankyou for playing my easter egg hunt!" 0 100 1000 1000)
+     (wrap-text ctx "Thankyou for playing my Easter egg hunt!" 0 100 1000 1000)
      (set! ctx.font "normal 20pt 'Press Start 2P'")
      (set! ctx.fillStyle "#000")
-     (robo-nightjar-bot-right ctx 20 "Help discover new egg patterns by playing the game, or find out more."))
+     (robo-nightjar-bot-right ctx 17 "Help discover new egg patterns by playing the full game, or find out more about camouflage research."))
 
    (game-modify-buttons
     (list
@@ -249,6 +253,14 @@
       (lambda (c)
         (set! window.location "http://nightjar.exeter.ac.uk")
         c))
+
+     (image-button "" 200 600 "none" (find-image "twitter.png")
+                   (lambda (c)
+                     (set! window.location "https://twitter.com/ProjectNightjar") c))
+
+     (image-button "" 600 600 "none" (find-image "facebook.png")
+                   (lambda (c)
+                     (set! window.location "https://www.facebook.com/SensoryEcology") c))
 
      )
     (game-modify-draggables (list) c))))
@@ -309,7 +321,9 @@
    "exeter.png"
    "cuckoos.png"
    "foam.png"
-   "sensory-ecology.png")
+   "sensory-ecology.png"
+   "facebook.png"
+   "twitter.png")
    egghuntbgs
    egg-images)
  (lambda ()

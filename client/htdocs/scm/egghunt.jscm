@@ -69,7 +69,7 @@
        (ctx.drawImage (find-image "eggs.jpg") 0 0)
        (set! ctx.font "normal 40pt 'Press Start 2P'")
        (wrap-text ctx "Easter Robot Nightjar's Easter Egg Hunt Construction Kit!" 0 160 1000 50)
-       (robo-nightjar-says ctx 18 "Help ecology research by making easter egg hunts with my artificial eggs, and send them to your friends!" 1)
+       (robo-nightjar-says ctx 18 "Help ecology research by making Easter egg hunts with my artificial eggs, and send them to your friends!" 1)
        (set! ctx.font "normal 15pt 'Press Start 2P'")
        (set! ctx.globalAlpha 0.8)
        (set! ctx.fillStyle "#ffffff")
@@ -223,12 +223,12 @@
 		      (facebook.send-message
 		       (string-append
 			facebook.me.name
-			" has sent you an easter egg hunt! ")
+			" has sent you an Easter egg hunt! ")
 		       (string-append
 			main-game-url
 			"/challenge.html?egghunt="
 			(cadr e)))
-		      (window.prompt "This is your easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
+		      (window.prompt "This is your Easter egg hunt URL, copy to clipboard: Ctrl+C, Enter"
 				     (string-append
 				      main-game-url "/challenge.html?egghunt="
 				      (cadr e))))
@@ -244,7 +244,7 @@
   (game-modify-render
    (lambda (ctx)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
-     (wrap-text ctx "Thankyou for making an easter egg hunt!" 0 100 1000 1000)
+     (wrap-text ctx "Thankyou for making an Easter egg hunt!" 0 100 1000 1000)
      (set! ctx.font "normal 20pt 'Press Start 2P'")
      (set! ctx.fillStyle "#000")
      (robo-nightjar-bot-right ctx 20 "Now try playing the game and help generating new egg patterns."))
@@ -261,6 +261,15 @@
       (lambda (c)
         (set! window.location main-game-url)
         c))
+
+     (image-button "" 200 600 "none" (find-image "twitter.png")
+                   (lambda (c)
+                     (set! window.location "https://twitter.com/ProjectNightjar") c))
+
+     (image-button "" 600 600 "none" (find-image "facebook.png")
+                   (lambda (c)
+                     (set! window.location "https://www.facebook.com/SensoryEcology") c))
+
 
      )
     (game-modify-draggables (list) c))))
@@ -332,7 +341,9 @@
    "foam.png"
    "sensory-ecology.png"
    "arrow-left-t.png"
-   "arrow-right-t.png")
+   "arrow-right-t.png"
+   "facebook.png"
+   "twitter.png")
   egghuntbgs
   egghuntbuts
   egg-images)
