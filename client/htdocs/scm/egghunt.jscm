@@ -79,7 +79,7 @@
     (list
      (image-button
       ""
-      800 430
+      800 440
       "rotate" (find-image "yes.png")
       (lambda (c)
         (new-egghunt c)))
