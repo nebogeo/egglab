@@ -259,7 +259,7 @@
      (image-button
       "Go to the main game" 600 400 "slidy" (find-image "bigbutton-2.png")
       (lambda (c)
-        (set! window.location main-game-url)
+        (set! window.location "https://nightjar.exeter.ac.uk/egglab")
         c))
 
      (image-button "" 200 600 "none" (find-image "twitter.png")
