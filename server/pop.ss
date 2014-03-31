@@ -206,25 +206,38 @@
             (vector-ref i 1)))
          (cdr s)))))
 
+
+(define (check-replicate/pop db population replicate)
+  (let ((s (select db "select phase from state where population = ? and replicate = ?" population replicate)))
+    (if (null? s)
+        #f (not (equal? (vector-ref (cadr s) 0) "init")))))
+
+(define (check-replicate db replicate)
+  (and
+   (check-replicate/pop db "CF" replicate)
+   (check-replicate/pop db "MV" replicate)
+   (check-replicate/pop db "CP" replicate)))
+
 ;; top n eggs
 (define (top-eggs db population replicate count)
-  (let ((s (select
-            db (string-append
-                "select e.genotype, (e.fitness / e.tests), e.id, e.replicate, e.generation from egg as e "
-                "where e.population = ? and e.replicate = ? "
-                "and e.generation = ? "
-                "order by (e.fitness / e.tests) desc limit ?")
-            population replicate (get-state db population replicate "generation") count)))
-    (if (null? s)
-        '()
-        (map
-         (lambda (i)
-           (list (vector-ref i 0)
-                 (vector-ref i 1)
-                 (vector-ref i 2)
+  (let ((replicate (if (check-replicate db replicate) replicate 0)))
+    (let ((s (select
+              db (string-append
+                  "select e.genotype, (e.fitness / e.tests), e.id, e.replicate, e.generation from egg as e "
+                  "where e.population = ? and e.replicate = ? "
+                  "and e.generation = ? "
+                  "order by (e.fitness / e.tests) desc limit ?")
+              population replicate (get-state db population replicate "generation") count)))
+      (if (null? s)
+          '()
+          (map
+           (lambda (i)
+             (list (vector-ref i 0)
+                   (vector-ref i 1)
+                   (vector-ref i 2)
                  (vector-ref i 3)
                  (vector-ref i 4)))
-         (cdr s)))))
+           (cdr s))))))
 
 
 
