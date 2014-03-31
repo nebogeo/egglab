@@ -567,7 +567,7 @@
       (wrap-text
        ctx (string-append "Egg pattern information") 0 100 1000 60)
       (set! ctx.font "normal 15pt 'Press Start 2P'")
-      (robo-nightjar-bot-left ctx 20 (text-or-tooltip c "Here you can get information on how the egg patterns are progressing."))
+      (robo-nightjar-bot-left ctx 20 (text-or-tooltip c "Here you can get information on how my egg patterns are progressing."))
       (set! ctx.fillStyle "#000")
       )
 
@@ -625,7 +625,7 @@
 
       (egglab-button
        "Egg difficulty graph" 600 600 (find-image "bigbutton-1.png")
-       "This shows how the eggs are becoming more difficult to spot."
+       "This shows how my eggs are becoming more difficult to spot."
         (lambda (c)
           (server-call-mutate
            "get-stats"
