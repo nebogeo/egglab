@@ -264,8 +264,7 @@
 
 (define (get-family-tree db egg)
   (let ((p (get-parent db egg)))
-    (msg p)
-    (if (null? p) '()
+    (if (null? p) (list (list egg '()))
         (cons (list egg (get-children db egg))
               (get-family-tree db (car p))))))
 

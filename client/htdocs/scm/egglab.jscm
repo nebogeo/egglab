@@ -375,20 +375,20 @@
      (wrap-text ctx "Main menu" 0 100 1000 1000)
      (set! ctx.font "normal 20pt 'Press Start 2P'")
      (set! ctx.fillStyle "#000")
-     (robo-nightjar-bot-right ctx 20 (text-or-tooltip c "Welcome to egglab! We need your help for our camouflage research!")))
+     (robo-nightjar-bot-right ctx 22 (text-or-tooltip c "Welcome to egglab! We need your help for our camouflage research!")))
 
    (game-modify-buttons
     (list
 
      (egglab-button
-      "Play the main game" 600 300 (find-image "bigbutton-1.png")
-      "Try and find new eggs. Their camouflage changes as more people play."
+      "Play the main game" 600 250 (find-image "bigbutton-1.png")
+      "Try and find new eggs. Their camouflage changes as people play."
       (lambda (c)
         (nightjar-choose-location c)))
 
      (egglab-button
-      "Challenge your friends" 600 500 (find-image "bigbutton-2.png")
-      "Make an Easter egg hunt for your friends to play."
+      "Challenge your friends" 600 450 (find-image "bigbutton-2.png")
+      "Make an Easter egg hunts for your friends to play."
       (lambda (c)
         (set! window.location "egghunt.html")
         c))
