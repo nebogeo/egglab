@@ -247,7 +247,7 @@
      (wrap-text ctx "Thankyou for making an Easter egg hunt!" 0 100 1000 1000)
      (set! ctx.font "normal 20pt 'Press Start 2P'")
      (set! ctx.fillStyle "#000")
-     (robo-nightjar-bot-right ctx 20 "Now try playing the game and help generating new egg patterns."))
+     (robo-nightjar-bot-right ctx 20 "Why not try playing my full game and help generate new egg patterns?"))
 
    (game-modify-buttons
     (list
