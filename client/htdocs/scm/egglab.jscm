@@ -387,7 +387,7 @@
         (nightjar-choose-location c)))
 
      (egglab-button
-      "Challenge your friends" 600 350 (find-image "bigbutton-2.png")
+      "Challenge your friends" 600 400 (find-image "bigbutton-2.png")
       "Make an Easter egg hunt for your friends to play."
       (lambda (c)
         (set! window.location "egghunt.html")
