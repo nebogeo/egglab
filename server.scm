@@ -159,7 +159,8 @@
        name
        (string->number score)
        population
-       (string->number replicate))
+       (string->number replicate)
+       (get-state db population replicate "generation"))
       (pluto-response
        (scheme->json '("ok")))))
 

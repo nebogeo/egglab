@@ -25,7 +25,7 @@
   (exec/ignore db "create table player ( id integer primary key autoincrement, time_stamp varchar, name varchar, played_before integer, age_range integer )")
   (exec/ignore db "create table egghunt ( id integer primary key autoincrement, background varchar, challenger varchar, message varchar, score integer, timestamp varchar)")
   (exec/ignore db "create table egghunt_egg ( id integer primary key autoincrement, egghunt_id integer, egg_id integer, x integer, y integer)")
-  (exec/ignore db "create table high_scores ( id integer primary key autoincrement, player_id int, player_name varchar, average_score real, population varchar, replicate int )")
+  (exec/ignore db "create table high_scores ( id integer primary key autoincrement, player_id int, player_name varchar, average_score real, population varchar, replicate int, generation int )")
 ;;  (exec/ignore db "create table egghunt_score ( id integer primary key autoincrement. egghunt_id integer, egg_id integer, est_clicked_time integer)")
   )
 
@@ -76,10 +76,10 @@
    name (if (equal? played-before "false") "0" "1") age-range
    player-id))
 
-(define (insert-score db player-id name average-score population replicate)
+(define (insert-score db player-id name average-score population replicate generation)
   (exec/ignore
-   db "insert into high_scores values (null, ?, ?, ?, ?, ?)"
-   player-id name average-score population replicate))
+   db "insert into high_scores values (null, ?, ?, ?, ?, ?, ?)"
+   player-id name average-score population replicate generation))
 
 (define (insert-stats db time-stamp egg-count av-fitness max-fitness min-fitness)
   (insert
@@ -118,7 +118,7 @@
 (define (hiscores db population count)
   (let ((s (select
             db (string-append
-                "select p.player_name, p.average_score from high_scores as p "
+                "select p.player_name, p.average_score, p.generation from high_scores as p "
                 "where p.population = ? "
                 "order by p.average_score limit ?")
             population count)))
@@ -126,7 +126,7 @@
         '()
         (map
          (lambda (i)
-           (list (vector-ref i 0) (vector-ref i 1)))
+           (list (vector-ref i 0) (vector-ref i 1) (vector-ref i 2)))
          (cdr s)))))
 
 (define (get-egghunt db egghunt-id)

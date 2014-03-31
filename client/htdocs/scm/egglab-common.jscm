@@ -146,7 +146,8 @@
    (value-mutate (operator-operand-b t) r)))
 
 (define (make-random-egg depth)
-  (if (or (zero? depth) (< (random 10) 2))
+  (if (and (< depth (- egg-complexity 2))
+           (or (zero? depth) (< (random 10) 2)))
       (make-terminal)
       (make-operator (make-random-egg (- depth 1))
                      (make-random-egg (- depth 1)))))
@@ -175,7 +176,9 @@
 ;; remove nodes below a given depth (replace them with random terminals)
 (define (structure-prune egg depth)
   (cond
-   ((zero? depth) (make-terminal))
+   ((and (zero? depth)
+         (eq? (program-type egg) "op"))
+    (make-terminal))
    ((eq? (program-type egg) "terminal") egg)
    (else
     (list "op" (operator-type egg)
@@ -202,10 +205,11 @@
 
 ;; mutate structure, then prune it before mutating the values
 (define (egg-mutate egg r)
-  (msg "mutating..")
-  (value-mutate (structure-prune (structure-mutate egg r) egg-complexity)  r))
+  (value-mutate (structure-prune (structure-mutate egg r) egg-complexity) r))
 
-(define (egg-drawable program rotate)
+;;(structure-prune (structure-mutate egg r) egg-complexity)
+
+(define (egg-drawable program rotate c)
   (let ((tcanvas (document.createElement "canvas")))
     (set! tcanvas.width 128)
     (set! tcanvas.height 128)
@@ -214,12 +218,12 @@
             (tctx.translate 64 64)
             (tctx.rotate (* (rndf) 2 Math.PI))
             (tctx.translate -64 -64))
-      (draw-egg tctx program)
+      (draw-egg tctx program c)
       (set! tctx.globalCompositeOperation "destination-atop")
       (tctx.drawImage (find-image "egg.png") 0 0)
       tcanvas)))
 
-(define (draw-terminal ctx program)
+(define (draw-terminal ctx program c)
   (cond
    ((eq? (terminal-type program) "colour")
     (set! ctx.globalAlpha (list-ref (terminal-colour program) 3))
@@ -234,7 +238,7 @@
     (let ((image-name
            (if (eq? (terminal-type program) "constant-image")
                (terminal-image program)
-               (string-append "/themes/huge/v" (random num-variations) "/"
+               (string-append "/themes/huge/v" (if c 0 (random num-variations)) "/"
                               (terminal-image program)))))
       (ctx.save)
       (set! ctx.fillStyle
@@ -258,21 +262,21 @@
       ;;               (- 0 (transform-y (terminal-transform program))))
       (ctx.restore)))))
 
-(define (draw-op ctx program)
+(define (draw-op ctx program c)
   (let ((tcanvas (document.createElement "canvas")))
     (set! tcanvas.width 128)
     (set! tcanvas.height 128)
     (let ((tctx (tcanvas.getContext "2d")))
-      (draw-egg tctx (operator-operand-a program))
+      (draw-egg tctx (operator-operand-a program) c)
       (set! tctx.globalCompositeOperation (operator-type program))
-      (draw-egg tctx (operator-operand-b program))
+      (draw-egg tctx (operator-operand-b program) c)
       (set! tctx.globalCompositeOperation "source-over")
       (ctx.drawImage tcanvas 0 0))))
 
-(define (draw-egg ctx program)
+(define (draw-egg ctx program c)
   (if (eq? (program-type program) "terminal")
-      (draw-terminal ctx program)
-      (draw-op ctx program)))
+      (draw-terminal ctx program c)
+      (draw-op ctx program c)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
