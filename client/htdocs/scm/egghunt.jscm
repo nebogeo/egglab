@@ -28,7 +28,7 @@
 
 (define (new-egghunt c)
   (server-call-mutate
-   "sample"
+   "egghunt-sample"
    (list
     (list "player-id" 1)
     (list "population" (choose (list "CF" "MV" "CP")))

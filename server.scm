@@ -86,6 +86,22 @@
                (list "player-id" (string->number player-id)))
            samples))))))
 
+   (register
+    (req 'egghunt-sample '(player-id population replicate count))
+    (lambda (player-id population replicate count)
+      (let ((samples (pop-sample-egghunt
+                      db population
+                      (string->number replicate)
+                      (string->number count))))
+        (pluto-response
+         (scheme->json
+          (list
+           ;; init the player if needed, at the same time
+           (if (eq? (string->number player-id) 0)
+               (init-player db)
+               (list "player-id" (string->number player-id)))
+           samples))))))
+
 
 ;   (pluto-response
 ;-       (string-append

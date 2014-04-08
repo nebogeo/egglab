@@ -185,6 +185,14 @@
                 (vector-ref i 4)))
              (cdr s))))))))
 
+(define (pop-sample-egghunt db population replicate count)
+  (let ((replicate (if (check-replicate db replicate) replicate 0)))
+    (check/init-state db population replicate)
+    (list
+     (get-state db population replicate "phase")
+     (inner-pop-sample db population replicate count))))
+
+
 (define (pop-sample db population replicate count)
   (check/init-state db population replicate)
   (list
