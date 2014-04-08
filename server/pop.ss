@@ -20,7 +20,7 @@
 (require (planet jaymccarthy/sqlite:5:1/sqlite))
 
 (define max-pop-size 128)
-(define min-tests 3)
+(define min-tests 5)
 (define pop-top 64)
 
 ;;(define max-pop-size 28)

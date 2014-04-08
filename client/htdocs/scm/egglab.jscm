@@ -653,7 +653,7 @@
    (lambda (t c ) c)
    (game-modify-render
     (lambda (ctx)
-      (robo-nightjar-bot-left ctx 20 "These are my quickest clicking players.")
+      (robo-nightjar-bot-left ctx 17 "These are my quickest clicking players. The number in brackets is the generation of eggs.")
       (set! ctx.fillStyle "#fff")
       (set! ctx.font "normal 30pt 'Press Start 2P'")
       (wrap-text ctx (string-append "High Scores") 120 100 1000 70)
@@ -1296,11 +1296,13 @@
 (define (nightjar-test c replicate egg ancestors eggs image genome vars)
   (game-modify-render
    (lambda (ctx)
+     (set! ctx.font "normal 20pt 'Press Start 2P'")
+     (wrap-text ctx "This screen shows the range of mutations possible for this egg." 0 100 1000 1000)
      (set! ctx.font "normal 30pt 'Press Start 2P'")
      (index-for-each
       (lambda (i egg)
         (ctx.drawImage egg
-                       (+ 200 (* 100 (modulo i 7)))
+                       (+ 250 (* 100 (modulo i 7)))
                        (+ 150 (* 130 (Math.floor (/ i 7))))))
       vars)
      ;;(draw-egg-family-tree ctx ancestors eggs)
