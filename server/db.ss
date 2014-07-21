@@ -42,11 +42,11 @@
           population replicate phase read_head generation))
 
 (define (get-state db population replicate key)
-  (vector-ref
-   (cadr (select db
+  (let ((s (select db
                  (string-append "select " key " from state where population=? and replicate=?")
-                 population replicate))
-   0))
+                 population replicate)))
+    (if (null? s) #f
+	(vector-ref (cadr s) 0))))
 
 (define (set-state db population replicate key value)
   (exec/ignore

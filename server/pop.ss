@@ -19,9 +19,9 @@
 
 (require (planet jaymccarthy/sqlite:5:1/sqlite))
 
-(define max-pop-size 128)
-(define min-tests 5)
-(define pop-top 64)
+(define max-pop-size 40)
+(define min-tests 1)
+(define pop-top 20)
 
 ;;(define max-pop-size 28)
 ;;(define min-tests 2)
@@ -217,8 +217,7 @@
 
 (define (check-replicate/pop db population replicate)
   (let ((s (select db "select phase from state where population = ? and replicate = ?" population replicate)))
-    (if (null? s)
-        #f (not (equal? (vector-ref (cadr s) 0) "init")))))
+    (if (null? s) #f (not (equal? (vector-ref (cadr s) 0) "init")))))
 
 (define (check-replicate db replicate)
   (and
@@ -236,6 +235,7 @@
                   "and e.generation = ? "
                   "order by (e.fitness / e.tests) desc limit ?")
               population replicate (get-state db population replicate "generation") count)))
+      (msg s)
       (if (null? s)
           '()
           (map
@@ -243,8 +243,8 @@
              (list (vector-ref i 0)
                    (vector-ref i 1)
                    (vector-ref i 2)
-                 (vector-ref i 3)
-                 (vector-ref i 4)))
+		   (vector-ref i 3)
+		   (vector-ref i 4)))
            (cdr s))))))
 
 
