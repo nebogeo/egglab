@@ -25,12 +25,12 @@ def fBm(x, y, per, octs, perm, dirs):
     return int((0.5+val)*255)
 
 def make_noise(size,freq,inv):
-    perm = range(256)
+    perm = range(1024)
     random.shuffle(perm)
     perm += perm
     dirs = [(math.cos(a * 2.0 * math.pi / 256),
              math.sin(a * 2.0 * math.pi / 256))
-            for a in range(256)]
+            for a in range(1024)]
     octs, data = 5, []
     for y in range(size):
         for x in range(size):
@@ -52,7 +52,7 @@ def threshold(image,threshold):
 
 def gen_noise(scale,thresh,var,inv):
     inv_v=256
-    im = make_noise(128, 1/float(scale), inv_v)
+    im = make_noise(512, 1/float(scale), inv_v)
     if thresh:
         im = threshold(im,thresh)
         if inv=="black": im = invert(im)
@@ -61,7 +61,7 @@ def gen_noise(scale,thresh,var,inv):
         if inv=="black": im = invert(im)
         im.save("images/v"+str(var)+"/"+inv+"-s"+str(scale)+".png")
 
-scales = [8,16,32,64]
+scales = [8*4,16*4,32*4,64*4]
 thresholds = [94,160]
 num_vars = 8
 

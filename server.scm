@@ -40,6 +40,8 @@
 (define db (open-db db-name))
 (open-log "log.txt")
 
+;(msg (sort (list-decendants db 1 0) (lambda (a b) (> (cadr a) (cadr b)))))
+
 ;; (dbg (get-family-tree db (list 164 #f)))
 
 (define registered-requests
@@ -101,6 +103,28 @@
                (init-player db)
                (list "player-id" (string->number player-id)))
            samples))))))
+
+
+   (register
+    (req 'get-all '(population replicate generation))
+    (lambda (population replicate generation)
+      (msg "get-all:" population replicate generation)
+      (pluto-response
+       (scheme->json
+        (pop-all db population
+                 (string->number replicate)
+                 (string->number generation))))))
+
+   (register
+    (req 'get-decendents '(egg-id))
+    (lambda (egg-id)
+      (pluto-response
+       (scheme->json
+        (list
+         (get-dindividual db (string->number egg-id))
+         (get-decendents db (string->number egg-id))))
+       )))
+
 
 
 ;   (pluto-response

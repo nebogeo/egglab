@@ -88,6 +88,25 @@
            (cdr s)))
     (exec/ignore db "end transaction")))
 
+(define (pop-all db population replicate generation)
+  (let ((s (select
+            db (string-append
+                "select e.id, e.genotype, e.parent from egg as e where "
+                "e.population = ? and "
+                "e.replicate = ? and "
+                "e.generation = ? order by (e.fitness/e.tests) desc")
+            population replicate generation)))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list
+            (vector-ref i 0)
+            (vector-ref i 1)
+            (vector-ref i 2)))
+         (cdr s)))))
+
+
 (define (pop-add db population replicate egg-phase egg-id player-id fitness parent image x-pos y-pos genotype)
   (let ((phase (get-state db population replicate "phase"))
         (timestamp (timestamp-now)))
@@ -294,6 +313,31 @@
            (list (vector-ref i 0) (vector-ref i 1) (vector-ref i 2) (vector-ref i 3)))
          (cdr s)))))
 
+;;;;;
+
+(define (get-dindividual db id)
+  (let ((s (select db "select e.id, e.parent, e.genotype, e.generation, (e.fitness/e.tests) from egg as e where e.id = ? " id)))
+    (if (null? s)
+        '()
+        (car
+         (map
+          (lambda (i)
+            (list (vector-ref i 0) (vector-ref i 1) (vector-ref i 2) (vector-ref i 3)))
+          (cdr s))))))
+
+(define (get-decendents db egg-id)
+  (let ((s (select
+            db  "select e.id, e.parent, e.genotype, e.generation, (e.fitness/e.tests) from egg as e where e.parent = ? " egg-id)))
+    (msg "gd" egg-id)
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (list
+            (list (vector-ref i 0) (vector-ref i 1) (vector-ref i 2)  (vector-ref i 3))
+            (get-decendents db (vector-ref i 0))))
+         (cdr s)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; game stuff
 
@@ -374,3 +418,22 @@
     )
 
 ;(pop-unit-tests)
+
+(define (vague-complexity l)
+  (cond
+    ((null? l) 0)
+    ((list? l)
+     (+ (length l)
+        (vague-complexity (car l))
+        (vague-complexity (cdr l))))
+    (else 1)))
+
+(define (list-decendants db i max)
+  (let ((ind (get-dindividual db i))
+        (vc (vague-complexity (get-decendents db i))))
+    (msg "list decendants for" i vc)
+    (if (or (not (list? ind)) (> i 1000))
+        '()
+        (cons
+         (list i vc)
+         (list-decendants db (+ i 1) max)))))

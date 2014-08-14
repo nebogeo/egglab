@@ -17,8 +17,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; gp
 
-(define num-eggs-total 20)
-(define num-eggs-from-population 20)
+(define num-eggs-total 5)
+(define num-eggs-from-population 5)
 (define num-best-eggs 16)
 (define selection-pop-size 256)
 (define photo-time-allowed 10)
@@ -60,6 +60,71 @@
 
 (define (calc-mutation-rate)
   (* (sqr (* (rndf) 3.16227766)) 0.01)) ;; sqrt of 10 = 0-10%
+
+
+
+(define pre-pop-count 0)
+(define pre-pop-types 2)
+
+(define (pre-pop-iter)
+  (console.log (+ "wop" pre-pop-count " " pre-pop-types))
+
+  (let ((p (cond
+            ((eq? pre-pop-types 0) "CP")
+            ((eq? pre-pop-types 1) "MV")
+            (else "CF"))))
+    (console.log (+ "damsmdmdnadnasd: " p))
+    (server-call
+     "add"
+     (list
+      (list "phase" "init")
+      (list "population" p)
+      (list "replicate" 0)
+      (list "egg-id" 0)
+      (list "player-id" 0)
+      (list "fitness" 0)
+      (list "parent" 0)
+      (list "image" "init")
+      (list "x-pos" 0)
+      (list "y-pos" 0)
+      (list "genotype" (JSON.stringify (make-random-egg egg-complexity))))))
+
+  (set! pre-pop-count (+ pre-pop-count 1))
+  (if (< pre-pop-count 128)
+      (setTimeout pre-pop-iter 200)
+      (begin
+        (set! pre-pop-types (- pre-pop-types 1))
+        (set! pre-pop-count 0)
+        (when (> pre-pop-types -1)
+              (setTimeout pre-pop-iter 200)))))
+
+(define (pre-populate)
+  (server-call
+   "sample"
+   (list
+    (list "player-id" 0)
+    (list "population" "CF")
+    (list "replicate" 0)
+    (list "count" 10)))
+
+  (server-call
+   "sample"
+   (list
+    (list "player-id" 0)
+    (list "population" "MV")
+    (list "replicate" 0)
+    (list "count" 10)))
+
+    (server-call
+   "sample"
+   (list
+    (list "player-id" 0)
+    (list "population" "CP")
+    (list "replicate" 0)
+    (list "count" 10)))
+
+  (setTimeout pre-pop-iter 1000))
+
 
 (define (make-population game samples mutate phase)
   (if (not (eq? phase "init"))
@@ -368,6 +433,8 @@
 (define (nightjar-menu c)
   ;; kick off the loading here
   (async-load-images-null c "MV" (append cf_images cp_images))
+
+;;  (pre-populate)
 
   (game-modify-render
    (lambda (ctx)
@@ -1119,8 +1186,8 @@
       ((< (seconds-taken c) photo-time-allowed)
        c)
       (else
-       ;; don't submit ones not clicked on???
-       ;;(submit-egg (car (egglab-data-eggs (game-data c))) c)
+       ;; submit ones not clicked on...
+       (submit-egg (car (egglab-data-eggs (game-data c))) c)
        (play-sound (string-append "fail.wav"))
        (build-next-egg c))))
    (game-modify-render
