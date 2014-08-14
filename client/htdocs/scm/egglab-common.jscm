@@ -20,7 +20,7 @@
 (define egg-complexity 6)
 (define main-game-url "http://nightjar.exeter.ac.uk/egglab")
 (define replicate-start 0)
-(define num-replicates 6)
+(define num-replicates 0)
 (define num-variations 8)
 
 (define egg-constant-images
