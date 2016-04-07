@@ -91,7 +91,7 @@
 (define (pop-all db population replicate generation)
   (let ((s (select
             db (string-append
-                "select e.id, e.genotype, e.parent from egg as e where "
+                "select e.id, e.genotype, e.parent, e.fitness/e.tests, e.tests from egg as e where "
                 "e.population = ? and "
                 "e.replicate = ? and "
                 "e.generation = ? order by (e.fitness/e.tests) desc")
@@ -103,7 +103,10 @@
            (list
             (vector-ref i 0)
             (vector-ref i 1)
-            (vector-ref i 2)))
+            (vector-ref i 2)
+            (vector-ref i 3)
+            (vector-ref i 4)
+            ))
          (cdr s)))))
 
 

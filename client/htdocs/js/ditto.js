@@ -462,6 +462,12 @@ ditto.core_forms = function(fn, args) {
         return "new "+ditto.car(args)+"( "+ditto.comp(ditto.cadr(args))+")";
     }
 
+    if (fn == "load") {
+        var v=ditto.comp(ditto.car(args));
+        console.log("loading "+v);
+        return ditto.load(v.substring(1,v.length-1));
+    }
+
     return false;
 };
 
