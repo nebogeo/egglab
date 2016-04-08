@@ -1,0 +1,74 @@
+;; -*- mode: scheme; -*-
+;; Planet Fluxus Copyright (C) 2013 Dave Griffiths
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU Affero General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU Affero General Public License for more details.
+;;
+;; You should have received a copy of the GNU Affero General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+(define (rndvec) (vector (rndf) (rndf) (rndf)))
+
+(define (crndf)
+  (* (- (rndf) 0.5) 2))
+
+(define (crndvec)
+  (vector (crndf) (crndf) (crndf)))
+
+(define (srndvec)
+  (define (loop v)
+    (if (> (vmag v) 1) ; todo: use non sqrt version
+        (loop (crndvec))
+        v))
+  (loop (crndvec)))
+
+(define (hsrndvec)
+  (define (loop v)
+    (let ((l (vmag v)))
+      (if (or (> l 1) (eq? l 0))
+          (loop (crndvec))
+          (vdiv v l))))
+  (loop (crndvec)))
+
+(define (grndf)
+  (define (loop x y)
+    (let ((l (+ (* x x) (* y y))))
+      (if (or (>= l 1) (eq? l 0))
+          (loop (crndf) (crndf))
+          (* (sqrt (/ (* -2 (log l)) l)) x))))
+  (loop (crndf) (crndf)))
+
+(define (grndvec)
+  (vector (grndf) (grndf) (grndf)))
+
+(define (rndbary)
+  (let ((a (- 1.0 (sqrt (rndf)))))
+    (let ((b (* (rndf) (- 1.0 a))))
+      (let ((c (- 1.0 (+ a b))))
+        (vector a b c)))))
+
+; return a line on the hemisphere
+(define (rndhemi n)
+  (define (loop v)
+    (if (> (vdot n v) 0)
+        v
+        (loop (srndvec))))
+  (loop (srndvec)))
+
+(define (hrndhemi n)
+  (define (loop v)
+    (if (> (vdot n v) 0)
+        v
+        (loop (hsrndvec))))
+  (loop (hsrndvec)))
+
+(define (hcrndvec s)
+  (let ((a (* (rndf) 360)))
+    (vector (* s (sin a)) (* s (cos a)) 0)))
